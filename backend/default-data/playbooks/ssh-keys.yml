@@ -1,0 +1,63 @@
+# SSH-Keys konsolidieren und aufraeumen
+# ACHTUNG: Dieses Playbook entfernt alle nicht definierten Keys!
+#
+# Verwendung:
+#   ansible-playbook playbooks/ssh-keys.yml -l <hostname>
+#   ansible-playbook playbooks/ssh-keys.yml -l <hostname> --check  # Trockenlauf
+---
+- name: SSH-Keys konsolidieren
+  hosts: all
+  become: false
+  vars:
+    # Standard-Keys fuer alle VMs (Beispiel - ersetze mit deinen eigenen Keys!)
+    ssh_keys:
+      - comment: "admin@example.com"
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAEXAMPLEKEYREPLACEWITHYOUROWN admin@example.com"
+      - comment: "ansible-control@homelab"
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAEXAMPLEKEYREPLACEWITHYOUROWN2 ansible-control@homelab"
+
+  tasks:
+    - name: Stelle sicher dass .ssh Verzeichnis existiert
+      ansible.builtin.file:
+        path: "~/.ssh"
+        state: directory
+        mode: '0700'
+
+    - name: Backup der aktuellen authorized_keys
+      ansible.builtin.copy:
+        src: "~/.ssh/authorized_keys"
+        dest: "~/.ssh/authorized_keys.backup.{{ ansible_date_time.iso8601_basic_short }}"
+        remote_src: true
+        mode: '0600'
+      ignore_errors: true
+
+    - name: Setze authorized_keys mit Standard-Keys (erster Key)
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ ssh_keys[0].key }}"
+        state: present
+        exclusive: true
+        comment: "{{ ssh_keys[0].comment }}"
+
+    - name: Fuege weitere Standard-Keys hinzu
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ item.key }}"
+        state: present
+        exclusive: false
+        comment: "{{ item.comment }}"
+      loop: "{{ ssh_keys[1:] }}"
+
+    - name: Zeige aktuelle authorized_keys
+      ansible.builtin.command: cat ~/.ssh/authorized_keys
+      register: auth_keys
+      changed_when: false
+
+    - name: Ausgabe
+      ansible.builtin.debug:
+        msg: |
+          {{ inventory_hostname }}: {{ auth_keys.stdout_lines | length }} Keys konfiguriert
+          Konfigurierte Keys:
+          {% for key in ssh_keys %}
+          - {{ key.comment }}
+          {% endfor %}

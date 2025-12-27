@@ -1,0 +1,41 @@
+# FastAPI
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+python-multipart==0.0.9
+
+# Database
+sqlalchemy==2.0.25
+aiosqlite==0.19.0
+alembic==1.13.1
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+
+# YAML parsing
+pyyaml==6.0.1
+ruamel.yaml>=0.18.0
+
+# HTTP client (for NetBox)
+httpx==0.26.0
+
+# WebSocket
+websockets==12.0
+
+# Settings
+pydantic-settings==2.1.0
+email-validator==2.1.1
+
+# Utils
+python-dateutil==2.8.2
+
+# Notifications (E-Mail, Crypto)
+aiosmtplib>=2.0.0
+cryptography>=41.0.0
+
+# Scheduler (Backup)
+apscheduler>=3.10.0
+
+# Ansible (statt apt-Installation fuer kleineres Image)
+ansible-core>=2.16.0

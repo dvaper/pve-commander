@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="serverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2196F3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1565C0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Hexagon Outline (dunkel fuer hellen Hintergrund) -->
+  <polygon
+    points="256,32 432,128 432,320 256,416 80,320 80,128"
+    fill="none"
+    stroke="#1565C0"
+    stroke-width="8"
+    opacity="0.3"
+  />
+
+  <!-- Server 1 (oben) -->
+  <rect x="156" y="120" width="200" height="50" rx="6" fill="url(#serverGradient)"/>
+  <rect x="166" y="130" width="120" height="10" rx="2" fill="#ffffff" opacity="0.9"/>
+  <rect x="166" y="145" width="80" height="6" rx="1" fill="#ffffff" opacity="0.5"/>
+  <circle cx="326" cy="145" r="10" fill="#4CAF50"/>
+  <circle cx="346" cy="145" r="6" fill="#FFC107"/>
+
+  <!-- Server 2 (mitte) -->
+  <rect x="156" y="180" width="200" height="50" rx="6" fill="url(#serverGradient)"/>
+  <rect x="166" y="190" width="100" height="10" rx="2" fill="#ffffff" opacity="0.9"/>
+  <rect x="166" y="205" width="60" height="6" rx="1" fill="#ffffff" opacity="0.5"/>
+  <circle cx="326" cy="205" r="10" fill="#4CAF50"/>
+  <circle cx="346" cy="205" r="6" fill="#4CAF50"/>
+
+  <!-- Server 3 (unten) -->
+  <rect x="156" y="240" width="200" height="50" rx="6" fill="url(#serverGradient)"/>
+  <rect x="166" y="250" width="140" height="10" rx="2" fill="#ffffff" opacity="0.9"/>
+  <rect x="166" y="265" width="100" height="6" rx="1" fill="#ffffff" opacity="0.5"/>
+  <circle cx="326" cy="265" r="10" fill="#4CAF50"/>
+  <circle cx="346" cy="265" r="6" fill="#FFC107"/>
+
+  <!-- Netzwerk-Verbindungen (dunkel) -->
+  <line x1="256" y1="290" x2="256" y2="330" stroke="#1565C0" stroke-width="3" opacity="0.5"/>
+  <line x1="256" y1="330" x2="196" y2="360" stroke="#1565C0" stroke-width="3" opacity="0.5"/>
+  <line x1="256" y1="330" x2="316" y2="360" stroke="#1565C0" stroke-width="3" opacity="0.5"/>
+
+  <!-- Netzwerk-Knoten -->
+  <circle cx="256" cy="330" r="8" fill="#1565C0" opacity="0.6"/>
+  <circle cx="196" cy="360" r="12" fill="url(#serverGradient)" stroke="#1565C0" stroke-width="2"/>
+  <circle cx="316" cy="360" r="12" fill="url(#serverGradient)" stroke="#1565C0" stroke-width="2"/>
+
+  <!-- Pfeil/Command Symbol (oben) -->
+  <polygon points="256,70 280,95 270,95 270,110 242,110 242,95 232,95" fill="#1565C0" opacity="0.6"/>
+</svg>

@@ -1,0 +1,73 @@
+# Locale-Konfiguration für Debian/Ubuntu VMs
+# Setzt de_DE.UTF-8 als Standard-Locale
+#
+# Verwendung:
+#   ansible-playbook playbooks/locale.yml -l <hostname>
+---
+- name: Locale konfigurieren
+  hosts: all
+  become: true
+  vars:
+    locale_lang: "de_DE.UTF-8"
+    locale_language: "de_DE:de"
+    locale_lc_all: "de_DE.UTF-8"
+
+  tasks:
+    - name: "Locales | Paket installieren"
+      ansible.builtin.apt:
+        name: locales
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: "Locales | de_DE.UTF-8 in /etc/locale.gen aktivieren"
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        regexp: '^#?\s*de_DE.UTF-8'
+        line: "de_DE.UTF-8 UTF-8"
+        state: present
+      register: locale_gen_changed
+
+    - name: "Locales | en_US.UTF-8 als Fallback aktivieren"
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        regexp: '^#?\s*en_US.UTF-8'
+        line: "en_US.UTF-8 UTF-8"
+        state: present
+      register: locale_en_changed
+
+    - name: "Locales | Generieren"
+      ansible.builtin.command: locale-gen
+      when: locale_gen_changed.changed or locale_en_changed.changed
+      register: locale_gen_result
+      changed_when: "'Generation complete' in locale_gen_result.stdout"
+
+    - name: "Locales | Standard-Locale setzen (localectl)"
+      ansible.builtin.command: localectl set-locale LANG={{ locale_lang }} LANGUAGE={{ locale_language }} LC_ALL={{ locale_lc_all }}
+      changed_when: true
+      when: ansible_service_mgr == 'systemd'
+
+    - name: "Locales | Standard-Locale setzen (/etc/default/locale)"
+      ansible.builtin.copy:
+        dest: /etc/default/locale
+        content: |
+          # Konfiguriert von Ansible
+          LANG={{ locale_lang }}
+          LANGUAGE={{ locale_language }}
+          LC_ALL={{ locale_lc_all }}
+        mode: '0644'
+        owner: root
+        group: root
+      when: ansible_service_mgr != 'systemd'
+
+    - name: "Locales | Aktuelle Einstellung pruefen"
+      ansible.builtin.command: localectl status
+      register: localectl_status
+      changed_when: false
+
+    - name: "Locales | Status"
+      ansible.builtin.debug:
+        msg: |
+          {{ inventory_hostname }}: Locale konfiguriert
+          {{ localectl_status.stdout }}
+          Hinweis: Fuer vollstaendige Aktivierung ist ein Re-Login erforderlich

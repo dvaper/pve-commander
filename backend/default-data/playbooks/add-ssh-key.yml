@@ -1,0 +1,36 @@
+---
+# SSH Public Key zu authorized_keys hinzufuegen
+- name: SSH Key hinzufuegen
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    # Diese Variable muss beim Ausfuehren gesetzt werden:
+    # -e "ssh_public_key='ssh-ed25519 AAAA... user@host'"
+    # -e "target_user=ansible"
+    target_user: "{{ ansible_user | default('ansible') }}"
+
+  tasks:
+    - name: Pruefe ob ssh_public_key gesetzt ist
+      ansible.builtin.fail:
+        msg: "Variable 'ssh_public_key' muss gesetzt sein. Beispiel: -e \"ssh_public_key='ssh-ed25519 AAAA...'\""
+      when: ssh_public_key is not defined or ssh_public_key == ""
+
+    - name: Stelle sicher dass Benutzer existiert
+      ansible.builtin.user:
+        name: "{{ target_user }}"
+        state: present
+        shell: /bin/bash
+        create_home: true
+
+    - name: SSH Key zu authorized_keys hinzufuegen
+      ansible.posix.authorized_key:
+        user: "{{ target_user }}"
+        key: "{{ ssh_public_key }}"
+        state: present
+        exclusive: false
+
+    - name: Bestaetigung
+      ansible.builtin.debug:
+        msg: "SSH Key wurde fuer Benutzer '{{ target_user }}' hinzugefuegt"

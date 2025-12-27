@@ -1,0 +1,260 @@
+# Post-Boot Konfiguration für VMs aus debian-13-proxmox Template
+# Führt alle Konfigurationen durch, die nicht über Cloud-Init möglich sind
+#
+# Verwendung:
+#   ansible-playbook playbooks/vm-post-boot.yml -l <hostname>
+#
+# Was wird konfiguriert:
+#   - ansible User mit SSH-Key
+#   - SSH-Härtung
+#   - Deutsche Locale
+#   - Basis-Pakete (fail2ban, ufw, htop, etc.)
+#   - UFW installiert (nicht aktiviert)
+#   - Fastfetch
+---
+- name: VM Post-Boot Konfiguration
+  hosts: all
+  become: true
+  vars:
+    # Ansible User
+    ansible_service_user: ansible
+    ansible_ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDDy9NmiGWdAN6nY2qpx9bS0KJ7GszxSjcCp1ilf4nK/ ansible-control@homelab"
+
+    # Pakete
+    base_packages:
+      - curl
+      - wget
+      - git
+      - unzip
+      - htop
+      - vim
+      - nano
+      - tmux
+      - jq
+      - tree
+      - ncdu
+      - rsync
+      - net-tools
+      - bind9-dnsutils  # ersetzt dnsutils in Debian 13
+      - iputils-ping
+      - traceroute
+      - mtr-tiny
+      - tcpdump
+      - nmap
+      - qemu-guest-agent
+      - unattended-upgrades
+      - apt-listchanges
+      - fail2ban
+      - ufw
+      - locales
+      - python3
+      - python3-apt
+
+  handlers:
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+
+    - name: Restart fail2ban
+      ansible.builtin.service:
+        name: fail2ban
+        state: restarted
+
+  tasks:
+    # =========================================================================
+    # ANSIBLE USER
+    # =========================================================================
+    - name: "Ansible User | Erstellen"
+      ansible.builtin.user:
+        name: "{{ ansible_service_user }}"
+        groups: sudo,adm,systemd-journal
+        append: true
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: "Ansible User | SSH-Verzeichnis erstellen"
+      ansible.builtin.file:
+        path: "/home/{{ ansible_service_user }}/.ssh"
+        state: directory
+        owner: "{{ ansible_service_user }}"
+        group: "{{ ansible_service_user }}"
+        mode: '0700'
+
+    - name: "Ansible User | SSH-Key hinzufügen"
+      ansible.builtin.authorized_key:
+        user: "{{ ansible_service_user }}"
+        key: "{{ ansible_ssh_key }}"
+        state: present
+
+    - name: "Ansible User | Passwordless sudo"
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ ansible_service_user }}"
+        content: |
+          # Passwordless sudo für Ansible
+          {{ ansible_service_user }} ALL=(ALL) NOPASSWD: ALL
+        mode: '0440'
+        validate: '/usr/sbin/visudo -cf %s'
+
+    # =========================================================================
+    # PAKETE
+    # =========================================================================
+    - name: "Pakete | APT Cache aktualisieren"
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: "Pakete | Basis-Pakete installieren"
+      ansible.builtin.apt:
+        name: "{{ base_packages }}"
+        state: present
+      register: packages_installed
+
+    # =========================================================================
+    # LOCALE
+    # =========================================================================
+    - name: "Locale | de_DE.UTF-8 aktivieren"
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        regexp: '^#?\s*de_DE.UTF-8'
+        line: "de_DE.UTF-8 UTF-8"
+        state: present
+      register: locale_changed
+
+    - name: "Locale | Generieren"
+      ansible.builtin.command: locale-gen
+      when: locale_changed.changed
+
+    - name: "Locale | Als Standard setzen"
+      ansible.builtin.copy:
+        dest: /etc/default/locale
+        content: |
+          LANG=de_DE.UTF-8
+          LANGUAGE=de_DE:de
+          LC_ALL=de_DE.UTF-8
+        mode: '0644'
+
+    # =========================================================================
+    # SSH HÄRTUNG
+    # =========================================================================
+    - name: "SSH | Härtungskonfiguration erstellen"
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/99-hardening.conf
+        content: |
+          # SSH Härtung - generiert von Ansible
+          PermitRootLogin no
+          PasswordAuthentication no
+          PubkeyAuthentication yes
+          AuthenticationMethods publickey
+          X11Forwarding no
+          AllowTcpForwarding no
+          AllowAgentForwarding no
+          PermitEmptyPasswords no
+          MaxAuthTries 3
+          LoginGraceTime 30
+          ClientAliveInterval 300
+          ClientAliveCountMax 2
+          Protocol 2
+          HostbasedAuthentication no
+          IgnoreRhosts yes
+        mode: '0644'
+      notify: Restart sshd
+
+    # =========================================================================
+    # FAIL2BAN
+    # =========================================================================
+    - name: "Fail2ban | Service aktivieren und starten"
+      ansible.builtin.service:
+        name: fail2ban
+        enabled: true
+        state: started
+
+    # =========================================================================
+    # UFW FIREWALL (installiert, aber nicht aktiviert)
+    # =========================================================================
+    - name: "UFW | Hinweis"
+      ansible.builtin.debug:
+        msg: "UFW ist installiert, aber nicht aktiviert. Regeln manuell konfigurieren."
+
+    # =========================================================================
+    # UNATTENDED UPGRADES
+    # =========================================================================
+    - name: "Unattended Upgrades | Konfigurieren"
+      ansible.builtin.lineinfile:
+        path: /etc/apt/apt.conf.d/50unattended-upgrades
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - regexp: '^//?\s*Unattended-Upgrade::Automatic-Reboot\s'
+          line: 'Unattended-Upgrade::Automatic-Reboot "false";'
+        - regexp: '^//?\s*Unattended-Upgrade::Remove-Unused-Dependencies\s'
+          line: 'Unattended-Upgrade::Remove-Unused-Dependencies "true";'
+
+    - name: "Unattended Upgrades | Service aktivieren"
+      ansible.builtin.service:
+        name: unattended-upgrades
+        enabled: true
+        state: started
+
+    # =========================================================================
+    # QEMU GUEST AGENT
+    # =========================================================================
+    - name: "QEMU Guest Agent | Service aktivieren und starten"
+      ansible.builtin.service:
+        name: qemu-guest-agent
+        enabled: true
+        state: started
+
+    # =========================================================================
+    # FASTFETCH
+    # =========================================================================
+    - name: "Fastfetch | Prüfen ob installiert"
+      ansible.builtin.command: which fastfetch
+      register: fastfetch_check
+      changed_when: false
+      failed_when: false
+
+    - name: "Fastfetch | Herunterladen"
+      ansible.builtin.get_url:
+        url: "https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.deb"
+        dest: /tmp/fastfetch.deb
+        mode: '0644'
+      when: fastfetch_check.rc != 0
+
+    - name: "Fastfetch | Installieren"
+      ansible.builtin.apt:
+        deb: /tmp/fastfetch.deb
+        state: present
+      when: fastfetch_check.rc != 0
+
+    - name: "Fastfetch | Temp-Datei löschen"
+      ansible.builtin.file:
+        path: /tmp/fastfetch.deb
+        state: absent
+      when: fastfetch_check.rc != 0
+
+    - name: "Fastfetch | Login-Script erstellen"
+      ansible.builtin.copy:
+        dest: /etc/profile.d/fastfetch.sh
+        content: |
+          # Fastfetch beim Login ausführen
+          if command -v fastfetch &> /dev/null; then
+            fastfetch --logo pve
+          fi
+        mode: '0644'
+
+    # =========================================================================
+    # ABSCHLUSS
+    # =========================================================================
+    - name: "Status | Zusammenfassung"
+      ansible.builtin.debug:
+        msg: |
+          VM Post-Boot Konfiguration abgeschlossen für {{ inventory_hostname }}
+          - ansible User erstellt
+          - SSH gehärtet
+          - Locale: de_DE.UTF-8
+          - Fail2ban aktiv
+          - UFW installiert (nicht aktiviert - Regeln manuell setzen)
+          - Fastfetch installiert

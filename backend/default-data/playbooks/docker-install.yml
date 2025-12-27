@@ -1,0 +1,111 @@
+# Docker Installation mit Convenience Script
+# Installiert Docker und Docker Compose
+#
+# Verwendung:
+#   ansible-playbook playbooks/docker-install.yml -l <hostname>
+#   ansible-playbook playbooks/docker-install.yml -l <hostname> -e "docker_user=myuser"
+---
+- name: Docker Installation
+  hosts: all
+  become: true
+  vars:
+    # User der zur docker-Gruppe hinzugefuegt wird
+    docker_user: "{{ ansible_user | default('admin') }}"
+
+  tasks:
+    # =========================================================================
+    # PRE-CHECKS
+    # =========================================================================
+    - name: "Pre-Check | Pruefen ob Docker bereits installiert ist"
+      ansible.builtin.command: docker --version
+      register: docker_check
+      changed_when: false
+      failed_when: false
+
+    - name: "Pre-Check | Docker Status"
+      ansible.builtin.debug:
+        msg: "Docker {{ 'bereits installiert: ' + docker_check.stdout if docker_check.rc == 0 else 'nicht installiert - wird installiert' }}"
+
+    # =========================================================================
+    # DOCKER INSTALLATION
+    # =========================================================================
+    - name: "Docker | Installiere Abhaengigkeiten"
+      ansible.builtin.apt:
+        name:
+          - curl
+          - ca-certificates
+          - gnupg
+        state: present
+        update_cache: true
+      when: docker_check.rc != 0
+
+    - name: "Docker | Download Convenience Script"
+      ansible.builtin.get_url:
+        url: https://get.docker.com
+        dest: /tmp/get-docker.sh
+        mode: '0755'
+      when: docker_check.rc != 0
+
+    - name: "Docker | Fuehre Convenience Script aus"
+      ansible.builtin.command: sh /tmp/get-docker.sh
+      register: docker_install
+      when: docker_check.rc != 0
+      changed_when: true
+
+    - name: "Docker | Zeige Installations-Output"
+      ansible.builtin.debug:
+        msg: "{{ docker_install.stdout_lines | default(['Docker war bereits installiert']) }}"
+      when: docker_install.stdout_lines is defined
+
+    - name: "Docker | Entferne Installations-Script"
+      ansible.builtin.file:
+        path: /tmp/get-docker.sh
+        state: absent
+
+    # =========================================================================
+    # POST-INSTALLATION
+    # =========================================================================
+    - name: "Post | Fuege {{ docker_user }} zur docker-Gruppe hinzu"
+      ansible.builtin.user:
+        name: "{{ docker_user }}"
+        groups: docker
+        append: true
+
+    - name: "Post | Stelle sicher dass Docker-Service laeuft"
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: "Post | Stelle sicher dass containerd-Service laeuft"
+      ansible.builtin.systemd:
+        name: containerd
+        state: started
+        enabled: true
+
+    # =========================================================================
+    # VERIFICATION
+    # =========================================================================
+    - name: "Verify | Pruefe Docker Version"
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: "Verify | Pruefe Docker Compose Version"
+      ansible.builtin.command: docker compose version
+      register: compose_version
+      changed_when: false
+
+    - name: "Verify | Pruefe Gruppenmitgliedschaft"
+      ansible.builtin.command: "id {{ docker_user }}"
+      register: user_groups
+      changed_when: false
+
+    - name: "Verify | Zeige Ergebnis"
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "{{ docker_version.stdout }}"
+          - "Docker Compose {{ compose_version.stdout }}"
+          - "User: {{ user_groups.stdout }}"
+          - "Status: Docker erfolgreich installiert!"

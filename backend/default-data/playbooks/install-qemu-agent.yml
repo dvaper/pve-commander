@@ -1,0 +1,36 @@
+---
+# QEMU Guest Agent installieren (fuer Proxmox VMs)
+- name: QEMU Guest Agent installieren
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: QEMU Guest Agent installieren (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: qemu-guest-agent
+        state: present
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: QEMU Guest Agent installieren (RHEL/Fedora)
+      ansible.builtin.dnf:
+        name: qemu-guest-agent
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: QEMU Guest Agent Service aktivieren und starten
+      ansible.builtin.systemd:
+        name: qemu-guest-agent
+        enabled: true
+        state: started
+
+    - name: Pruefe Agent Status
+      ansible.builtin.command: systemctl status qemu-guest-agent
+      register: agent_status
+      changed_when: false
+      failed_when: false
+
+    - name: Agent Status Ausgabe
+      ansible.builtin.debug:
+        msg: "QEMU Guest Agent ist {{ 'aktiv' if agent_status.rc == 0 else 'nicht aktiv' }}"

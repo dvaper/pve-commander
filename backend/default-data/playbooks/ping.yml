@@ -1,0 +1,18 @@
+---
+# Einfacher Verbindungstest
+- name: Ping - Verbindungstest
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Ping Host
+      ansible.builtin.ping:
+
+    - name: Zeige Hostname
+      ansible.builtin.command: hostname
+      register: hostname_result
+      changed_when: false
+
+    - name: Ausgabe Hostname
+      ansible.builtin.debug:
+        msg: "Host {{ inventory_hostname }} antwortet als {{ hostname_result.stdout }}"

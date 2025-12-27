@@ -1,0 +1,411 @@
+# ZSH Setup Playbook
+# Installiert ZSH mit Oh-My-Zsh, Powerlevel10k und nuetzlichen Plugins
+#
+# Verwendung:
+#   ansible-playbook playbooks/setup-zsh.yml -l <hostname>
+#   ansible-playbook playbooks/setup-zsh.yml -l <hostname> -e "zsh_user=myuser"
+#   ansible-playbook playbooks/setup-zsh.yml -l <hostname> -e "setup_root=true"
+---
+- name: Setup ZSH with Oh-My-Zsh and Powerlevel10k
+  hosts: all
+  become: true
+  vars:
+    # Ziel-User (kann ueberschrieben werden)
+    zsh_user: "{{ ansible_user | default('admin') }}"
+    zsh_user_home: "/home/{{ zsh_user }}"
+
+    # Auch fuer root einrichten?
+    setup_root: false
+
+    # Nerd Fonts installieren?
+    install_fonts: true
+
+    # MesloLGS NF Fonts (Powerlevel10k empfohlen)
+    nerd_fonts:
+      - url: https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
+        name: "MesloLGS NF Regular.ttf"
+      - url: https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
+        name: "MesloLGS NF Bold.ttf"
+      - url: https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
+        name: "MesloLGS NF Italic.ttf"
+      - url: https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
+        name: "MesloLGS NF Bold Italic.ttf"
+
+    # Oh-My-Zsh Plugins
+    ohmyzsh_plugins:
+      - git
+      - sudo
+      - docker
+      - docker-compose
+      - kubectl
+      - history
+      - colored-man-pages
+      - command-not-found
+
+    # Externe Plugins (werden geklont)
+    external_plugins:
+      - name: zsh-autosuggestions
+        repo: https://github.com/zsh-users/zsh-autosuggestions.git
+      - name: zsh-syntax-highlighting
+        repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+      - name: zsh-history-substring-search
+        repo: https://github.com/zsh-users/zsh-history-substring-search.git
+      - name: you-should-use
+        repo: https://github.com/MichaelAquilina/zsh-you-should-use.git
+      - name: fzf-tab
+        repo: https://github.com/Aloxaf/fzf-tab.git
+
+  tasks:
+    # ==========================================
+    # Pakete installieren
+    # ==========================================
+    - name: Installiere benoetigte Pakete
+      ansible.builtin.apt:
+        name:
+          - zsh
+          - git
+          - curl
+          - fzf
+          - fd-find
+          - bat
+          - eza
+          - jq
+          - htop
+          - tree
+        state: present
+        update_cache: true
+
+    - name: Erstelle ~/.local/bin Verzeichnis
+      ansible.builtin.file:
+        path: "{{ zsh_user_home }}/.local/bin"
+        state: directory
+        owner: "{{ zsh_user }}"
+        group: "{{ zsh_user }}"
+        mode: "0755"
+
+    - name: Erstelle Symlink bat -> batcat
+      ansible.builtin.file:
+        src: /usr/bin/batcat
+        dest: "{{ zsh_user_home }}/.local/bin/bat"
+        state: link
+        owner: "{{ zsh_user }}"
+        group: "{{ zsh_user }}"
+
+    - name: Erstelle Symlink fd -> fdfind
+      ansible.builtin.file:
+        src: /usr/bin/fdfind
+        dest: "{{ zsh_user_home }}/.local/bin/fd"
+        state: link
+        owner: "{{ zsh_user }}"
+        group: "{{ zsh_user }}"
+
+    # ==========================================
+    # Nerd Fonts installieren (optional)
+    # ==========================================
+    - name: Installiere Nerd Fonts
+      when: install_fonts | bool
+      block:
+        - name: Installiere fontconfig
+          ansible.builtin.apt:
+            name: fontconfig
+            state: present
+
+        - name: Erstelle System Font-Verzeichnis
+          ansible.builtin.file:
+            path: /usr/local/share/fonts/meslo-nf
+            state: directory
+            mode: "0755"
+
+        - name: Lade MesloLGS NF Fonts herunter
+          ansible.builtin.get_url:
+            url: "{{ item.url }}"
+            dest: "/usr/local/share/fonts/meslo-nf/{{ item.name }}"
+            mode: "0644"
+          loop: "{{ nerd_fonts }}"
+          loop_control:
+            label: "{{ item.name }}"
+
+        - name: Aktualisiere Font-Cache
+          ansible.builtin.command: fc-cache -fv
+          changed_when: true
+
+    # ==========================================
+    # Oh-My-Zsh installieren
+    # ==========================================
+    - name: Pruefe ob Oh-My-Zsh bereits installiert ist
+      ansible.builtin.stat:
+        path: "{{ zsh_user_home }}/.oh-my-zsh"
+      register: ohmyzsh_installed
+
+    - name: Installiere Oh-My-Zsh
+      ansible.builtin.shell: |
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      args:
+        creates: "{{ zsh_user_home }}/.oh-my-zsh"
+      become_user: "{{ zsh_user }}"
+      when: not ohmyzsh_installed.stat.exists
+
+    # ==========================================
+    # Powerlevel10k Theme
+    # ==========================================
+    - name: Installiere Powerlevel10k Theme
+      ansible.builtin.git:
+        repo: https://github.com/romkatv/powerlevel10k.git
+        dest: "{{ zsh_user_home }}/.oh-my-zsh/custom/themes/powerlevel10k"
+        depth: 1
+        force: false
+      become_user: "{{ zsh_user }}"
+
+    # ==========================================
+    # Externe Plugins klonen
+    # ==========================================
+    - name: Installiere externe ZSH Plugins
+      ansible.builtin.git:
+        repo: "{{ item.repo }}"
+        dest: "{{ zsh_user_home }}/.oh-my-zsh/custom/plugins/{{ item.name }}"
+        depth: 1
+        force: false
+      loop: "{{ external_plugins }}"
+      become_user: "{{ zsh_user }}"
+
+    # ==========================================
+    # .zshrc Konfiguration (inline Template)
+    # ==========================================
+    - name: Erstelle .zshrc Konfiguration
+      ansible.builtin.copy:
+        dest: "{{ zsh_user_home }}/.zshrc"
+        owner: "{{ zsh_user }}"
+        group: "{{ zsh_user }}"
+        mode: "0644"
+        backup: true
+        content: |
+          # Managed by Ansible
+          # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+          if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+            source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+          fi
+
+          # Path to your Oh My Zsh installation.
+          export ZSH="$HOME/.oh-my-zsh"
+
+          # Set name of the theme to load
+          ZSH_THEME="powerlevel10k/powerlevel10k"
+
+          # Which plugins would you like to load?
+          plugins=(
+            git
+            sudo
+            docker
+            docker-compose
+            kubectl
+            history
+            colored-man-pages
+            command-not-found
+            zsh-autosuggestions
+            zsh-syntax-highlighting
+            zsh-history-substring-search
+            you-should-use
+            fzf-tab
+          )
+
+          source $ZSH/oh-my-zsh.sh
+
+          # User configuration
+          export LANG=de_DE.UTF-8
+          export LC_ALL=de_DE.UTF-8
+          export EDITOR='vim'
+          export VISUAL='vim'
+
+          # PATH erweitern
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # FZF Konfiguration
+          if command -v fzf &> /dev/null; then
+            export FZF_DEFAULT_OPTS='
+              --height 40%
+              --layout=reverse
+              --border
+              --info=inline
+            '
+            if command -v fd &> /dev/null; then
+              export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+              export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+              export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+            fi
+            [ -f /usr/share/doc/fzf/examples/key-bindings.zsh ] && source /usr/share/doc/fzf/examples/key-bindings.zsh
+            [ -f /usr/share/doc/fzf/examples/completion.zsh ] && source /usr/share/doc/fzf/examples/completion.zsh
+          fi
+
+          # History Konfiguration
+          HISTFILE=~/.zsh_history
+          HISTSIZE=50000
+          SAVEHIST=50000
+
+          # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+          [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+    # ==========================================
+    # Custom Aliases
+    # ==========================================
+    - name: Erstelle Custom Aliases Datei
+      ansible.builtin.copy:
+        dest: "{{ zsh_user_home }}/.oh-my-zsh/custom/aliases.zsh"
+        owner: "{{ zsh_user }}"
+        group: "{{ zsh_user }}"
+        mode: "0644"
+        content: |
+          # Managed by Ansible
+          # Custom Aliases fuer Oh-My-Zsh
+
+          # ==========================================
+          # Verzeichnis-Navigation
+          # ==========================================
+          alias ..='cd ..'
+          alias ...='cd ../..'
+          alias ....='cd ../../..'
+
+          # ==========================================
+          # eza (moderner ls-Ersatz)
+          # ==========================================
+          alias ls='eza --color=auto --icons'
+          alias ll='eza -la --color=auto --icons --group-directories-first'
+          alias la='eza -a --color=auto --icons'
+          alias l='eza -l --color=auto --icons'
+          alias lt='eza -la --tree --level=2 --icons'
+          alias list='eza -l -a -h -g --octal-permissions'
+
+          # ==========================================
+          # bat (moderner cat-Ersatz)
+          # ==========================================
+          alias cat='bat --paging=never'
+          alias catp='bat'
+
+          # ==========================================
+          # grep mit Farben
+          # ==========================================
+          alias grep='grep --color=auto'
+          alias fgrep='fgrep --color=auto'
+          alias egrep='egrep --color=auto'
+
+          # ==========================================
+          # Sicherheits-Aliase
+          # ==========================================
+          alias rm='rm -i'
+          alias cp='cp -i'
+          alias mv='mv -i'
+
+          # ==========================================
+          # System
+          # ==========================================
+          alias df='df -h'
+          alias du='du -h'
+          alias free='free -h'
+          alias ports='ss -tulpn'
+          alias myip='curl -s ifconfig.me'
+
+          # ==========================================
+          # Docker
+          # ==========================================
+          if command -v docker &> /dev/null; then
+            alias d='docker'
+            alias dc='docker compose'
+            alias dps='docker ps --format "table {{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}\t{{ '{{' }}.Ports{{ '}}' }}"'
+            alias dlog='docker logs -f'
+            alias dexec='docker exec -it'
+          fi
+
+          # ==========================================
+          # Git
+          # ==========================================
+          alias g='git'
+          alias gs='git status'
+          alias ga='git add'
+          alias gc='git commit'
+          alias gp='git push'
+          alias gl='git pull'
+          alias gd='git diff'
+          alias glog='git log --oneline --graph --decorate -10'
+
+          # ==========================================
+          # Ansible
+          # ==========================================
+          if command -v ansible &> /dev/null; then
+            alias ap='ansible-playbook'
+            alias av='ansible-vault'
+            alias ai='ansible-inventory'
+          fi
+
+          # ==========================================
+          # Systemd
+          # ==========================================
+          alias sc='sudo systemctl'
+          alias scs='sudo systemctl status'
+          alias scr='sudo systemctl restart'
+          alias jf='journalctl -f'
+
+    # ==========================================
+    # Shell aendern
+    # ==========================================
+    - name: Setze ZSH als Standard-Shell fuer User
+      ansible.builtin.user:
+        name: "{{ zsh_user }}"
+        shell: /usr/bin/zsh
+
+    # ==========================================
+    # Optional: Root Setup
+    # ==========================================
+    - name: Setup fuer root
+      when: setup_root | bool
+      block:
+        - name: Pruefe ob Oh-My-Zsh fuer root installiert ist
+          ansible.builtin.stat:
+            path: /root/.oh-my-zsh
+          register: ohmyzsh_root_installed
+
+        - name: Installiere Oh-My-Zsh fuer root
+          ansible.builtin.shell: |
+            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+          args:
+            creates: /root/.oh-my-zsh
+          when: not ohmyzsh_root_installed.stat.exists
+
+        - name: Installiere Powerlevel10k fuer root
+          ansible.builtin.git:
+            repo: https://github.com/romkatv/powerlevel10k.git
+            dest: /root/.oh-my-zsh/custom/themes/powerlevel10k
+            depth: 1
+            force: false
+
+        - name: Installiere externe Plugins fuer root
+          ansible.builtin.git:
+            repo: "{{ item.repo }}"
+            dest: "/root/.oh-my-zsh/custom/plugins/{{ item.name }}"
+            depth: 1
+            force: false
+          loop: "{{ external_plugins }}"
+
+        - name: Erstelle ~/.local/bin fuer root
+          ansible.builtin.file:
+            path: /root/.local/bin
+            state: directory
+            mode: "0755"
+
+        - name: Erstelle Symlinks fuer root
+          ansible.builtin.file:
+            src: "{{ item.src }}"
+            dest: "/root/.local/bin/{{ item.name }}"
+            state: link
+          loop:
+            - { src: /usr/bin/batcat, name: bat }
+            - { src: /usr/bin/fdfind, name: fd }
+
+        - name: Setze ZSH als Shell fuer root
+          ansible.builtin.user:
+            name: root
+            shell: /usr/bin/zsh
+
+    - name: Hinweis zu Powerlevel10k Konfiguration
+      ansible.builtin.debug:
+        msg: |
+          ZSH Setup abgeschlossen fuer {{ inventory_hostname }}
+          Nach dem ersten Login 'p10k configure' ausfuehren fuer Powerlevel10k Setup

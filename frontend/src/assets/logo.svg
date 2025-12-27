@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Gradient fuer den Hauptbereich -->
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2196F3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1565C0;stop-opacity:1" />
+    </linearGradient>
+    <!-- Gradient fuer Akzente -->
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#64B5F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E88E5;stop-opacity:1" />
+    </linearGradient>
+    <!-- Schatten -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Hintergrund-Hexagon (Commander-Symbol) -->
+  <polygon
+    points="256,32 432,128 432,320 256,416 80,320 80,128"
+    fill="url(#mainGradient)"
+    filter="url(#shadow)"
+  />
+
+  <!-- Innerer Rahmen -->
+  <polygon
+    points="256,56 408,140 408,308 256,392 104,308 104,140"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="2"
+    opacity="0.3"
+  />
+
+  <!-- Server-Rack Symbol (3 Server) -->
+  <!-- Server 1 (oben) -->
+  <rect x="156" y="120" width="200" height="50" rx="6" fill="#ffffff" opacity="0.95"/>
+  <rect x="166" y="130" width="120" height="10" rx="2" fill="#1565C0"/>
+  <rect x="166" y="145" width="80" height="6" rx="1" fill="#90CAF9"/>
+  <circle cx="326" cy="145" r="10" fill="#4CAF50"/>
+  <circle cx="346" cy="145" r="6" fill="#FFC107"/>
+
+  <!-- Server 2 (mitte) -->
+  <rect x="156" y="180" width="200" height="50" rx="6" fill="#ffffff" opacity="0.95"/>
+  <rect x="166" y="190" width="100" height="10" rx="2" fill="#1565C0"/>
+  <rect x="166" y="205" width="60" height="6" rx="1" fill="#90CAF9"/>
+  <circle cx="326" cy="205" r="10" fill="#4CAF50"/>
+  <circle cx="346" cy="205" r="6" fill="#4CAF50"/>
+
+  <!-- Server 3 (unten) -->
+  <rect x="156" y="240" width="200" height="50" rx="6" fill="#ffffff" opacity="0.95"/>
+  <rect x="166" y="250" width="140" height="10" rx="2" fill="#1565C0"/>
+  <rect x="166" y="265" width="100" height="6" rx="1" fill="#90CAF9"/>
+  <circle cx="326" cy="265" r="10" fill="#4CAF50"/>
+  <circle cx="346" cy="265" r="6" fill="#FFC107"/>
+
+  <!-- Netzwerk-Verbindungen -->
+  <line x1="256" y1="290" x2="256" y2="330" stroke="#ffffff" stroke-width="3" opacity="0.8"/>
+  <line x1="256" y1="330" x2="196" y2="360" stroke="#ffffff" stroke-width="3" opacity="0.8"/>
+  <line x1="256" y1="330" x2="316" y2="360" stroke="#ffffff" stroke-width="3" opacity="0.8"/>
+
+  <!-- Netzwerk-Knoten -->
+  <circle cx="256" cy="330" r="8" fill="#ffffff"/>
+  <circle cx="196" cy="360" r="12" fill="url(#accentGradient)" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="316" cy="360" r="12" fill="url(#accentGradient)" stroke="#ffffff" stroke-width="2"/>
+
+  <!-- Pfeil/Command Symbol (oben) -->
+  <polygon points="256,70 280,95 270,95 270,110 242,110 242,95 232,95" fill="#ffffff" opacity="0.9"/>
+</svg>

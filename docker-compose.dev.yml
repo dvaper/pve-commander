@@ -1,0 +1,186 @@
+services:
+  # =============================================================================
+  # Proxmox Commander - Development Build
+  # =============================================================================
+
+  dpc-web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pve-commander-web
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      - dpc-api
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+    networks:
+      - pve-commander
+
+  dpc-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pve-commander-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      netbox:
+        condition: service_started
+    env_file:
+      - path: ./.env
+        required: false
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DEBUG=${DEBUG:-true}
+      - NETBOX_URL=http://netbox:8080
+      - DATA_DIR=/data
+      - INVENTORY_DIR=/data/inventory
+      - PLAYBOOKS_DIR=/data/playbooks
+      - ROLES_DIR=/data/roles
+      - TERRAFORM_DIR=/data/terraform
+      - SSH_KEY_PATH=/data/ssh/id_ed25519
+      - ENV_FILE=/app/.env
+    volumes:
+      - ./data/db:/data/db
+      - ./data/inventory:/data/inventory
+      - ./data/playbooks:/data/playbooks
+      - ./data/roles:/data/roles
+      - ./data/terraform:/data/terraform
+      - ./data/ssh:/data/ssh:ro
+      - ./data/config:/data/config
+      - ./.env:/app/.env:rw
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - pve-commander
+
+  # =============================================================================
+  # NetBox - IPAM & DCIM
+  # =============================================================================
+
+  netbox:
+    image: netboxcommunity/netbox:v4.0
+    container_name: pve-commander-netbox
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - CORS_ORIGIN_ALLOW_ALL=True
+      - DB_HOST=postgres
+      - DB_NAME=netbox
+      - DB_USER=netbox
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-netbox}
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - SECRET_KEY=${NETBOX_SECRET_KEY:-netbox-default-secret-key-change-me-in-production-min-50-chars}
+      - SUPERUSER_NAME=${NETBOX_ADMIN_USER:-admin}
+      - SUPERUSER_EMAIL=${NETBOX_ADMIN_EMAIL:-admin@example.com}
+      - SUPERUSER_PASSWORD=${NETBOX_ADMIN_PASSWORD:-admin}
+      - SUPERUSER_API_TOKEN=${NETBOX_TOKEN:-0123456789abcdef0123456789abcdef01234567}
+      - SKIP_SUPERUSER=false
+    volumes:
+      - ./data/netbox/media:/opt/netbox/netbox/media
+      - ./data/netbox/reports:/opt/netbox/netbox/reports
+      - ./data/netbox/scripts:/opt/netbox/netbox/scripts
+    networks:
+      - pve-commander
+
+  netbox-worker:
+    image: netboxcommunity/netbox:v4.0
+    container_name: pve-commander-netbox-worker
+    restart: unless-stopped
+    depends_on:
+      netbox:
+        condition: service_started
+    command: /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py rqworker
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - DB_HOST=postgres
+      - DB_NAME=netbox
+      - DB_USER=netbox
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-netbox}
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - SECRET_KEY=${NETBOX_SECRET_KEY:-netbox-default-secret-key-change-me-in-production-min-50-chars}
+    volumes:
+      - ./data/netbox/media:/opt/netbox/netbox/media
+      - ./data/netbox/reports:/opt/netbox/netbox/reports
+      - ./data/netbox/scripts:/opt/netbox/netbox/scripts
+    networks:
+      - pve-commander
+
+  netbox-housekeeping:
+    image: netboxcommunity/netbox:v4.0
+    container_name: pve-commander-netbox-housekeeping
+    restart: unless-stopped
+    depends_on:
+      netbox:
+        condition: service_started
+    command: /opt/netbox/housekeeping.sh
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - DB_HOST=postgres
+      - DB_NAME=netbox
+      - DB_USER=netbox
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-netbox}
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - SECRET_KEY=${NETBOX_SECRET_KEY:-netbox-default-secret-key-change-me-in-production-min-50-chars}
+    networks:
+      - pve-commander
+
+  # =============================================================================
+  # Database & Cache
+  # =============================================================================
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: pve-commander-postgres
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - POSTGRES_USER=netbox
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-netbox}
+      - POSTGRES_DB=netbox
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U netbox"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pve-commander
+
+  redis:
+    image: redis:7-alpine
+    container_name: pve-commander-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pve-commander
+
+networks:
+  pve-commander:
+    driver: bridge
+
+# Alle Daten liegen unter ./data/ (Bind Mounts statt Named Volumes)
+# Bei Loeschen des Installationsverzeichnisses werden alle Daten geloescht

@@ -1,0 +1,56 @@
+# Fastfetch Installation mit Proxmox VE Logo
+# Installiert Fastfetch und konfiguriert Login-Banner
+#
+# Verwendung:
+#   ansible-playbook playbooks/fastfetch.yml -l <hostname>
+---
+- name: Fastfetch Installation
+  hosts: all
+  become: true
+
+  tasks:
+    - name: "Fastfetch | Pruefen ob installiert"
+      ansible.builtin.command: which fastfetch
+      register: fastfetch_check
+      changed_when: false
+      failed_when: false
+
+    - name: "Fastfetch | Herunterladen"
+      ansible.builtin.get_url:
+        url: "https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.deb"
+        dest: /tmp/fastfetch.deb
+        mode: '0644'
+      when: fastfetch_check.rc != 0
+
+    - name: "Fastfetch | Installieren"
+      ansible.builtin.apt:
+        deb: /tmp/fastfetch.deb
+        state: present
+      when: fastfetch_check.rc != 0
+
+    - name: "Fastfetch | Temp-Datei loeschen"
+      ansible.builtin.file:
+        path: /tmp/fastfetch.deb
+        state: absent
+
+    - name: "Fastfetch | Login-Script erstellen"
+      ansible.builtin.copy:
+        dest: /etc/profile.d/fastfetch.sh
+        content: |
+          # Fastfetch beim Login ausfuehren
+          if command -v fastfetch &> /dev/null; then
+            fastfetch --logo pve
+          fi
+        mode: '0644'
+
+    - name: "Fastfetch | Version pruefen"
+      ansible.builtin.command: fastfetch --version
+      register: fastfetch_version
+      changed_when: false
+
+    - name: "Fastfetch | Status"
+      ansible.builtin.debug:
+        msg: |
+          {{ inventory_hostname }}: Fastfetch installiert
+          {{ fastfetch_version.stdout }}
+          Login-Banner mit Proxmox VE Logo aktiviert

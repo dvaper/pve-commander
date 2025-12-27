@@ -1,0 +1,46 @@
+# Environment
+.env
+!.env.example
+
+# Data directories (root level only)
+/data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.venv/
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+.claude/
+CLAUDE.md
+
+# Lokale Notizen/Planung
+FEATURE_COMPARISON.md
+TODO.md
+**/PLAN*.md
+**/PLAN-*.md
+**/*_PLAN.md
+**/*_PLAN_*.md
+**/plans/
+test-lauf.md
+
+# Security Reports (lokal, nicht committen)
+SECURITY*.md
+security-audit*.md
+security-report*.md
+security/

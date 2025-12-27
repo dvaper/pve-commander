@@ -1,0 +1,125 @@
+# DNS-Konfiguration korrigieren
+# Setzt einheitliche Search Domain und FQDN auf allen Linux-Hosts
+#
+# Verwendung:
+#   ansible-playbook playbooks/dns-fix.yml -l <hostname>
+---
+- name: DNS-Konfiguration korrigieren
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    # Standard-Domain (anpassen an eigene Infrastruktur)
+    correct_domain: "{{ domain | default('example.com') }}"
+    # DNS-Server (anpassen an eigene Infrastruktur)
+    primary_dns: "{{ dns_servers | default(['10.0.0.1', '10.0.0.2']) }}"
+
+  tasks:
+    - name: Aktuellen Hostnamen ermitteln
+      ansible.builtin.command: hostname -s
+      register: current_hostname
+      changed_when: false
+
+    - name: Aktuellen FQDN ermitteln
+      ansible.builtin.command: hostname -f
+      register: current_fqdn
+      changed_when: false
+      failed_when: false
+
+    - name: Aktuelle Search Domain ermitteln
+      ansible.builtin.shell: grep '^search' /etc/resolv.conf | awk '{print $2}'
+      register: current_search
+      changed_when: false
+      failed_when: false
+
+    - name: DNS-Status anzeigen
+      ansible.builtin.debug:
+        msg: |
+          Host: {{ inventory_hostname }}
+          Aktueller Hostname: {{ current_hostname.stdout }}
+          Aktueller FQDN: {{ current_fqdn.stdout | default('nicht gesetzt') }}
+          Aktuelle Search Domain: {{ current_search.stdout | default('nicht gesetzt') }}
+          Soll FQDN: {{ inventory_hostname }}.{{ correct_domain }}
+          Soll Search Domain: {{ correct_domain }}
+
+    - name: Verzeichnis fuer resolved.conf.d erstellen
+      ansible.builtin.file:
+        path: /etc/systemd/resolved.conf.d
+        state: directory
+        mode: '0755'
+      when: ansible_service_mgr == 'systemd'
+
+    - name: Pruefen ob systemd-resolved aktiv ist
+      ansible.builtin.service_facts:
+      register: service_facts
+
+    - name: systemd-resolved konfigurieren (wenn vorhanden)
+      ansible.builtin.copy:
+        dest: /etc/systemd/resolved.conf.d/dns.conf
+        mode: '0644'
+        content: |
+          # Managed by Ansible - dns-fix.yml
+          [Resolve]
+          DNS={{ primary_dns | join(' ') }}
+          Domains={{ correct_domain }}
+      notify: restart systemd-resolved
+      when:
+        - ansible_service_mgr == 'systemd'
+        - "'systemd-resolved.service' in ansible_facts.services"
+
+    - name: resolv.conf direkt konfigurieren (ohne systemd-resolved)
+      ansible.builtin.copy:
+        dest: /etc/resolv.conf
+        mode: '0644'
+        content: |
+          # Managed by Ansible - dns-fix.yml
+          search {{ correct_domain }}
+          {% for dns in primary_dns %}
+          nameserver {{ dns }}
+          {% endfor %}
+      when: "'systemd-resolved.service' not in ansible_facts.services | default({})"
+
+    - name: /etc/hosts aktualisieren (127.0.1.1 Eintrag)
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s+'
+        line: "127.0.1.1 {{ inventory_hostname }}.{{ correct_domain }} {{ inventory_hostname }}"
+        state: present
+
+    - name: Hostname setzen (nur kurzer Name)
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+        use: systemd
+      when: current_hostname.stdout != inventory_hostname
+
+  handlers:
+    - name: restart systemd-resolved
+      ansible.builtin.systemd:
+        name: systemd-resolved
+        state: restarted
+        daemon_reload: true
+
+- name: DNS-Korrektur verifizieren
+  hosts: all
+  become: false
+  gather_facts: false
+
+  tasks:
+    - name: Neuen FQDN pruefen
+      ansible.builtin.command: hostname -f
+      register: new_fqdn
+      changed_when: false
+
+    - name: Neue Search Domain pruefen
+      ansible.builtin.shell: grep '^search' /etc/resolv.conf | awk '{print $2}'
+      register: new_search
+      changed_when: false
+
+    - name: Ergebnis anzeigen
+      ansible.builtin.debug:
+        msg: |
+          {{ inventory_hostname }}:
+            FQDN: {{ new_fqdn.stdout }}
+            Search Domain: {{ new_search.stdout }}
+            Status: {{ 'OK' if new_search.stdout == (domain | default('example.com')) else 'FEHLER' }}
