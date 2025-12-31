@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.0.8 (2025-12-31)
+
+### Verbesserungen
+- Storage und Templates werden dynamisch aus Proxmox geladen
+- Node-IP wird automatisch via DNS aufgeloest
+- Keine hardcodierten Defaults mehr (local-ssd, 940001, pve-node-01, VLAN 60)
+- DNS-Default geaendert zu Cloudflare/Google (1.1.1.1, 8.8.8.8)
+
+### Portabilitaet
+- Installation auf anderen Systemen ohne Anpassung moeglich
+- Alle Werte werden zur Laufzeit aus Proxmox/NetBox geladen
+
 ## v1.0.7 (2025-12-31)
 
 ### Bugfixes
