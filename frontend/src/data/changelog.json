@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.0.12",
+    "date": "2025-12-31",
+    "changes": {
+      "Bugfixes": [
+        "Backup-Loeschen-Button in SettingsView hinzugefuegt (v1.0.12)"
+      ]
+    }
+  },
+  {
     "version": "v1.0.11",
     "date": "2025-12-31",
     "changes": {
