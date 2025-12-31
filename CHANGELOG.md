@@ -1,8 +1,12 @@
 # Changelog
 
+## v1.2.2 (2025-12-31)
+
+- Terraform State: Raw State Data ohne Hoehenbegrenzung (min 500px)
+
 ## v1.2.1 (2025-12-31)
 
-- Terraform State: Raw State Data Bereich vergroessert (70vh statt 400px)
+- Terraform State: Raw State Data Bereich vergroessert
 
 ## v1.2.0 (2025-12-31)
 

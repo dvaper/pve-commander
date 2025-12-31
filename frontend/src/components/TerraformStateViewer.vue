@@ -154,7 +154,7 @@
 
       <!-- Details (rechts) -->
       <v-col cols="12" md="7" lg="8">
-        <v-sheet class="pa-4" :style="{ maxHeight: '600px', overflowY: 'auto' }">
+        <v-sheet class="pa-4">
           <template v-if="!selectedResource">
             <v-alert type="info" variant="tonal">
               Wähle eine Ressource aus der Liste, um Details anzuzeigen.
@@ -709,8 +709,11 @@ defineExpose({
   word-break: break-all;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  max-height: 70vh;
-  min-height: 300px;
+  min-height: 500px;
   overflow-y: auto;
+}
+
+:deep(.v-expansion-panel-text__wrapper) {
+  padding: 8px !important;
 }
 </style>
