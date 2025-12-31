@@ -21,9 +21,9 @@ class VMTemplate(Base):
     memory_gb = Column(Integer, nullable=False, default=2)
     disk_size_gb = Column(Integer, nullable=False, default=20)
     target_node = Column(String(50), nullable=True)  # Optional, sonst auswählbar
-    storage = Column(String(50), nullable=False, default="local-ssd")
-    template_vmid = Column(Integer, nullable=True)  # Proxmox Template VMID
-    vlan = Column(Integer, nullable=False, default=60)
+    storage = Column(String(50), nullable=True)  # Dynamisch aus Proxmox
+    template_vmid = Column(Integer, nullable=True)  # Proxmox Template VMID (dynamisch)
+    vlan = Column(Integer, nullable=True)  # Dynamisch aus NetBox
 
     # Ansible Integration
     ansible_group = Column(String(100), nullable=True)

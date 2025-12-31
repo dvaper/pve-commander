@@ -122,12 +122,12 @@ class Settings(BaseSettings):
     ansible_host_key_checking: bool = False
 
     # ==========================================================================
-    # VM Deployment Defaults
+    # VM Deployment Defaults (werden dynamisch aus Proxmox/NetBox geladen)
     # ==========================================================================
     default_ssh_user: str = "ansible"
-    default_template_id: int = 940001
-    default_storage: str = "local-ssd"
-    default_vlan: int = 60
+    default_template_id: Optional[int] = None  # Erstes verfuegbares Template
+    default_storage: Optional[str] = None  # Erstes verfuegbares Storage
+    default_vlan: Optional[int] = None  # Erstes verfuegbares VLAN aus NetBox
 
     # ==========================================================================
     # CORS

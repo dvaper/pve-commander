@@ -73,10 +73,10 @@ class VMDeploymentService:
         cores: int,
         memory_gb: int,
         disk_size_gb: int,
-        vlan: int = 60,
+        vlan: int,  # Dynamisch aus NetBox
+        storage: str,  # Dynamisch aus Proxmox
         ansible_group: str = "",
-        template_id: int = None,
-        storage: str = "local-ssd",
+        template_id: int = None,  # Dynamisch aus Proxmox
         cloud_init_user_data: str = "",
     ) -> str:
         """Generiert Terraform-Konfiguration für eine VM"""
@@ -303,9 +303,10 @@ module "{module_name}" {{
             cores=config.cores,
             memory_gb=config.memory_gb,
             disk_size_gb=config.disk_size_gb,
+            vlan=config.vlan,
+            storage=config.storage,
             ansible_group=ansible_group,
             template_id=config.template_id,
-            storage=config.storage,
             cloud_init_user_data=cloud_init_ref,
         )
 
@@ -739,6 +740,7 @@ module "{module_name}" {{
             memory_gb=source_config.memory_gb,
             disk_size_gb=source_config.disk_size_gb,
             vlan=vlan,
+            storage=source_config.storage,  # Storage vom Quell-VM uebernehmen
             ansible_group="",  # Klon nicht automatisch ins Inventory
         )
 

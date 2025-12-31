@@ -16,9 +16,9 @@ class VMTemplateBase(BaseModel):
     memory_gb: int = Field(default=2, ge=1, le=128, description="RAM in GB")
     disk_size_gb: int = Field(default=20, ge=10, le=1000, description="Disk-Größe in GB")
     target_node: Optional[str] = Field(default=None, description="Proxmox-Node (optional)")
-    storage: str = Field(default="local-ssd", description="Storage-Pool")
-    template_vmid: Optional[int] = Field(default=None, description="Proxmox Template VMID")
-    vlan: int = Field(default=60, description="VLAN-ID")
+    storage: Optional[str] = Field(default=None, description="Storage-Pool (dynamisch)")
+    template_vmid: Optional[int] = Field(default=None, description="Proxmox Template VMID (dynamisch)")
+    vlan: Optional[int] = Field(default=None, description="VLAN-ID (dynamisch aus NetBox)")
 
     # Ansible Integration
     ansible_group: Optional[str] = Field(default=None, description="Ansible-Inventar-Gruppe")

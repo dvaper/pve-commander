@@ -664,12 +664,11 @@ proxmox_token_id     = "{config.proxmox_token_id}"
 proxmox_token_secret = "{config.proxmox_token_secret}"
 proxmox_tls_insecure = {str(not config.proxmox_verify_ssl).lower()}
 
-# VM-Defaults
-default_template      = 940001
-default_template_node = "pve-node-01"
+# VM-Defaults (werden bei VM-Erstellung dynamisch gesetzt)
+# default_template und default_template_node werden aus Proxmox geladen
 ssh_user              = "{config.default_ssh_user}"
 ssh_public_key        = "{ssh_public_key}"
-default_dns           = ["10.0.0.1", "1.1.1.1"]
+default_dns           = ["1.1.1.1", "8.8.8.8"]
 '''
 
     # Schreiben

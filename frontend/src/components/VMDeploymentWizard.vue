@@ -389,7 +389,7 @@
                   </tr>
                   <tr>
                     <td class="text-grey">Storage</td>
-                    <td>{{ config.storage || 'Standard (local-ssd)' }}</td>
+                    <td>{{ config.storage || 'Nicht ausgewaehlt' }}</td>
                   </tr>
                   <tr>
                     <td class="text-grey">Ansible-Gruppe</td>
@@ -508,12 +508,12 @@ const config = ref({
   name: '',
   description: '',
   target_node: '',  // Wird dynamisch aus Cluster geladen
-  template_id: null,
-  storage: 'local-ssd',
+  template_id: null,  // Wird dynamisch aus Proxmox geladen
+  storage: '',  // Wird dynamisch aus Proxmox geladen
   cores: 2,
   memory_gb: 2,
   disk_size_gb: 20,
-  vlan: 60,
+  vlan: null,  // Wird dynamisch aus NetBox geladen
   ip_address: null,
   auto_reserve_ip: true,
   ansible_group: '',
@@ -618,13 +618,13 @@ async function open() {
   config.value = {
     name: '',
     description: '',
-    target_node: '',  // Wird nach loadNodes() gesetzt
-    template_id: null,
-    storage: 'local-ssd',
+    target_node: '',  // Wird dynamisch geladen
+    template_id: null,  // Wird dynamisch geladen
+    storage: '',  // Wird dynamisch geladen
     cores: 2,
     memory_gb: 2,
     disk_size_gb: 20,
-    vlan: 60,
+    vlan: null,  // Wird dynamisch geladen
     ip_address: null,
     auto_reserve_ip: true,
     ansible_group: '',
@@ -803,11 +803,8 @@ async function loadTemplates() {
       ...t,
       label: `${t.name} (VMID: ${t.vmid})`,
     }))
-    // Standard-Template (940001) vorauswählen falls vorhanden
-    const defaultTemplate = templates.value.find(t => t.vmid === 940001)
-    if (defaultTemplate) {
-      config.value.template_id = 940001
-    } else if (templates.value.length > 0) {
+    // Erstes verfuegbares Template vorauswaehlen
+    if (templates.value.length > 0) {
       config.value.template_id = templates.value[0].vmid
     }
   } catch (e) {
@@ -828,16 +825,13 @@ async function loadStoragePools() {
       ...s,
       label: `${s.id} (${s.type})`,
     }))
-    // local-ssd vorauswählen falls vorhanden
-    const defaultStorage = storagePools.value.find(s => s.id === 'local-ssd')
-    if (defaultStorage) {
-      config.value.storage = 'local-ssd'
-    } else if (storagePools.value.length > 0) {
+    // Erstes verfuegbares Storage vorauswaehlen
+    if (storagePools.value.length > 0) {
       config.value.storage = storagePools.value[0].id
     }
   } catch (e) {
     console.error('Storage laden fehlgeschlagen:', e)
-    storagePools.value = [{ id: 'local-ssd', label: 'local-ssd (default)' }]
+    storagePools.value = []
   } finally {
     loadingStorage.value = false
   }

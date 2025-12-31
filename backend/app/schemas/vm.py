@@ -31,17 +31,17 @@ class VMConfigCreate(BaseModel):
     description: str = Field(default="", max_length=500, description="Beschreibung")
     target_node: str = Field(..., min_length=1, description="Proxmox-Node (dynamisch aus Cluster)")
 
-    # Template & Storage
-    template_id: Optional[int] = Field(default=None, description="Template VMID (None = Standard 940001)")
-    storage: str = Field(default="local-ssd", description="Storage-Pool für VM-Disk")
+    # Template & Storage (dynamisch aus Proxmox)
+    template_id: Optional[int] = Field(default=None, description="Template VMID (dynamisch)")
+    storage: Optional[str] = Field(default=None, description="Storage-Pool fuer VM-Disk (dynamisch)")
 
     # Ressourcen
     cores: int = Field(default=2, ge=1, le=32, description="CPU-Kerne")
     memory_gb: int = Field(default=2, ge=1, le=128, description="RAM in GB")
     disk_size_gb: int = Field(default=20, ge=10, le=1000, description="Disk-Größe in GB")
 
-    # Netzwerk
-    vlan: int = Field(default=60, description="VLAN-ID")
+    # Netzwerk (dynamisch aus NetBox)
+    vlan: Optional[int] = Field(default=None, description="VLAN-ID (dynamisch aus NetBox)")
     ip_address: Optional[str] = Field(default=None, description="IP-Adresse (None = automatisch)")
     auto_reserve_ip: bool = Field(default=True, description="IP in NetBox reservieren")
 

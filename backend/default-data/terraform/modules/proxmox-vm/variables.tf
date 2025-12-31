@@ -49,9 +49,9 @@ variable "disk_size" {
 }
 
 variable "disk_storage" {
-  description = "Storage-Pool fuer VM-Disk"
+  description = "Storage-Pool fuer VM-Disk (aus Proxmox)"
   type        = string
-  default     = "local-ssd"
+  # Kein Default - wird dynamisch aus Proxmox geladen
 }
 
 # =============================================================================
@@ -69,9 +69,9 @@ variable "gateway" {
 }
 
 variable "bridge" {
-  description = "Netzwerk-Bridge (z.B. vmbr60)"
+  description = "Netzwerk-Bridge (z.B. vmbr0, vmbr60)"
   type        = string
-  default     = "vmbr60"
+  default     = "vmbr0"  # Standard-Bridge
 }
 
 variable "netmask" {
@@ -85,15 +85,15 @@ variable "netmask" {
 # =============================================================================
 
 variable "template_id" {
-  description = "Template VMID zum Klonen"
+  description = "Template VMID zum Klonen (aus Proxmox)"
   type        = number
-  default     = 940001
+  # Kein Default - wird dynamisch aus Proxmox geladen
 }
 
 variable "template_node" {
-  description = "Node auf dem das Template liegt"
+  description = "Node auf dem das Template liegt (aus Proxmox)"
   type        = string
-  default     = "pve-node-01"
+  # Kein Default - wird dynamisch ermittelt
 }
 
 variable "ssh_user" {
@@ -111,7 +111,7 @@ variable "ssh_keys" {
 variable "dns_servers" {
   description = "DNS-Server"
   type        = list(string)
-  default     = ["10.0.0.1", "1.1.1.1"]
+  default     = ["1.1.1.1", "8.8.8.8"]  # Cloudflare + Google als universelle Defaults
 }
 
 variable "cloud_init_user_data" {
