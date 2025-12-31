@@ -648,6 +648,12 @@ async function open() {
     loadNetboxUrl(),
   ])
 
+  // Fallback: IPs laden falls kein Default-Preset existiert
+  // (loadAvailableIPs wird sonst nur durch applyPreset oder VLAN-Wechsel getriggert)
+  if (availableIPs.value.length === 0 && config.value.vlan) {
+    await loadAvailableIPs()
+  }
+
   dialog.value = true
 }
 
