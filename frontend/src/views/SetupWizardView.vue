@@ -317,14 +317,9 @@
 
                         <!-- Integriertes NetBox -->
                         <div v-if="netboxMode === 'integrated'">
-                          <v-alert type="warning" variant="tonal" density="compact" class="mb-4">
-                            <v-icon start size="small">mdi-clock-outline</v-icon>
-                            <strong>Erstinstallation:</strong> NetBox wird nach dem Setup-Wizard gestartet.
-                            Die Initialisierung dauert ca. 5-10 Minuten (Datenbank-Migrationen).
-                          </v-alert>
-
                           <v-alert type="info" variant="tonal" density="compact" class="mb-4">
-                            Konfiguriere hier die Admin-Zugangsdaten fuer NetBox.
+                            Das integrierte NetBox wird automatisch mit der Applikation gestartet.
+                            Konfiguriere hier die Admin-Zugangsdaten.
                             <br><br>
                             <strong>Hinweis:</strong> Fuer eine komplette Neuinstallation (inkl. NetBox-Daten)
                             verwende: <code>docker compose down -v</code>
@@ -1082,17 +1077,11 @@ async function saveConfig() {
 
     // Prüfen ob Konfiguration direkt geladen wurde (kein Restart nötig)
     if (response.data.restart_required === false) {
-      // Pruefen ob integriertes NetBox gewaehlt wurde
-      if (netboxMode.value === 'integrated') {
-        // Anweisungen zum manuellen Start anzeigen
-        showNetboxManualStartDialog.value = true
-      } else {
-        // Direkt zur Login-Seite weiterleiten
-        redirectingToLogin.value = true
-        setTimeout(() => {
-          window.location.href = '/login'
-        }, 1500)
-      }
+      // Direkt zur Login-Seite weiterleiten
+      redirectingToLogin.value = true
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 1500)
     } else {
       // Fallback: Restart erforderlich - Dialog anzeigen
       showSuccessDialog.value = true

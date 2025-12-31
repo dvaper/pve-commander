@@ -161,7 +161,7 @@ curl -LO https://raw.githubusercontent.com/dvaper/pve-commander/main/docker-comp
 mkdir -p data/{db,inventory,playbooks,roles,terraform,ssh,config}
 sudo chown -R 1000:1000 data/
 
-# Starten (Core-Services: Web + API + Postgres + Redis)
+# Starten (Erstinstallation dauert ca. 5-10 Minuten wegen NetBox DB-Migrationen)
 docker compose up -d
 ```
 
@@ -169,23 +169,6 @@ docker compose up -d
 
 ```
 http://<vm-ip>:8080/setup
-```
-
-**NetBox-Optionen im Setup-Wizard:**
-- **Integriertes NetBox**: Wird automatisch gestartet (Erstinstallation dauert ca. 5-10 Min)
-- **Externes NetBox**: Verbindung zu bestehender NetBox-Instanz
-- **Kein NetBox**: IP-Adressen manuell verwalten
-
-### 4. NetBox manuell starten (optional)
-
-Falls NetBox spaeter manuell gestartet werden soll:
-
-```bash
-# NetBox-Profile aktivieren
-docker compose --profile netbox up -d
-
-# Status pruefen (dauert bei Erstinstallation 5-10 Minuten)
-docker compose logs -f netbox
 ```
 
 ## Ports
@@ -240,8 +223,7 @@ tar -czvf backup-$(date +%Y%m%d).tar.gz data/
 |---------|---------|
 | Container startet nicht | `docker compose logs dpc-api` |
 | Login funktioniert nicht | `.env` pruefen, Container neu starten |
-| NetBox nicht erreichbar | `docker compose --profile netbox up -d` (NetBox muss separat gestartet werden) |
-| NetBox Fehler | `docker compose --profile netbox restart` |
+| NetBox Fehler | `docker compose restart netbox netbox-worker netbox-housekeeping` |
 | Proxmox-Verbindung fehlgeschlagen | API-Token Berechtigungen, Firewall (Port 8006), SSL-Einstellung pruefen |
 
 ## Sicherheit
@@ -426,7 +408,7 @@ curl -LO https://raw.githubusercontent.com/dvaper/pve-commander/main/docker-comp
 mkdir -p data/{db,inventory,playbooks,roles,terraform,ssh,config}
 sudo chown -R 1000:1000 data/
 
-# Start (core services: Web + API + Postgres + Redis)
+# Start (first installation takes ~5-10 minutes due to NetBox DB migrations)
 docker compose up -d
 ```
 
@@ -434,23 +416,6 @@ docker compose up -d
 
 ```
 http://<vm-ip>:8080/setup
-```
-
-**NetBox options in the Setup Wizard:**
-- **Integrated NetBox**: Started automatically (first installation takes ~5-10 min)
-- **External NetBox**: Connect to existing NetBox instance
-- **No NetBox**: Manage IP addresses manually
-
-### 4. Start NetBox manually (optional)
-
-If you want to start NetBox later manually:
-
-```bash
-# Activate NetBox profile
-docker compose --profile netbox up -d
-
-# Check status (first installation takes 5-10 minutes)
-docker compose logs -f netbox
 ```
 
 ## Ports
@@ -505,8 +470,7 @@ tar -czvf backup-$(date +%Y%m%d).tar.gz data/
 |---------|----------|
 | Container won't start | `docker compose logs dpc-api` |
 | Login not working | Check `.env`, restart container |
-| NetBox not reachable | `docker compose --profile netbox up -d` (NetBox must be started separately) |
-| NetBox errors | `docker compose --profile netbox restart` |
+| NetBox errors | `docker compose restart netbox netbox-worker netbox-housekeeping` |
 | Proxmox connection failed | Check API token permissions, firewall (port 8006), SSL settings |
 
 ## Security

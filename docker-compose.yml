@@ -37,7 +37,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # NetBox ist optional (wird via --profile netbox gestartet)
     # HIGH-06: Healthcheck fuer API
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -79,17 +78,14 @@ services:
       - pve-commander
 
   # =============================================================================
-  # NetBox - IPAM & DCIM (Optional, via --profile netbox)
+  # NetBox - IPAM & DCIM
   # =============================================================================
-  # NetBox wird nur gestartet wenn explizit angefordert:
-  #   docker compose --profile netbox up -d
   # Bei Erstinstallation dauert die Initialisierung 5-10 Minuten (DB-Migrationen)
 
   netbox:
     image: netboxcommunity/netbox:${NETBOX_VERSION:-v4.0}
     container_name: pve-commander-netbox
     restart: unless-stopped
-    profiles: ["netbox"]
     # Port 8081 fuer direkten Zugriff auf NetBox UI
     ports:
       - "${NETBOX_PORT:-8081}:8080"
@@ -126,7 +122,6 @@ services:
     image: netboxcommunity/netbox:${NETBOX_VERSION:-v4.0}
     container_name: pve-commander-netbox-worker
     restart: unless-stopped
-    profiles: ["netbox"]
     depends_on:
       netbox:
         condition: service_started
@@ -150,7 +145,6 @@ services:
     image: netboxcommunity/netbox:${NETBOX_VERSION:-v4.0}
     container_name: pve-commander-netbox-housekeeping
     restart: unless-stopped
-    profiles: ["netbox"]
     depends_on:
       netbox:
         condition: service_started
