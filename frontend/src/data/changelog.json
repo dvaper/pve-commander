@@ -1,5 +1,49 @@
 [
   {
+    "version": "v1.1.0",
+    "date": "2025-12-31",
+    "changes": {
+      "Performance": [
+        "Ansible-Ausfuehrung optimiert"
+      ],
+      "Features": [
+        "NetBox als optionales Docker Compose Profile"
+      ],
+      "Refactoring": [
+        "Storage und Templates werden dynamisch aus Proxmox geladen"
+      ],
+      "Sicherheit": [
+        "NetBox API Token wird automatisch generiert"
+      ],
+      "Dokumentation": [
+        "CHANGELOG fuer v1.0.1 aktualisiert",
+        "GitHub Community Standards hinzugefuegt",
+        "README fuer v1.0.0 aktualisiert"
+      ],
+      "Bugfixes": [
+        "Backup-Loeschen-Button in SettingsView hinzugefuegt (v1.0.12)",
+        "Backup-Tabelle Aktionen-Buttons immer sichtbar (v1.0.11)",
+        "Fresh-Installation Fixes fuer v1.0.10",
+        "5 Bugfixes fuer v1.0.9",
+        "Node-IP wird dynamisch via DNS ermittelt statt Placeholder",
+        "NetBox Superuser wird automatisch bei Erstinstallation erstellt",
+        "DOCKER_GID Default auf 989 geaendert (Debian Standard)",
+        "Setup-Wizard zeigt Anleitung fuer manuellen NetBox-Start",
+        "NetBox Superuser-Sync wartet auf NetBox-Initialisierung (max 5 Min)",
+        "SKIP_SUPERUSER=true verhindert doppelten NetBox-User bei Erstinstallation",
+        "Service-Status zeigt Details, NetBox-Benutzer in Settings verlinkt",
+        "VM-Liste laedt Daten bei Reaktivierung neu",
+        "Inventory View laedt Daten bei Navigation und Reaktivierung neu",
+        "NetBox External URL wird automatisch im Setup-Wizard gesetzt",
+        "Yaml Callback deaktiviert (erfordert community.general)",
+        "Korrekter Pfad fuer ansible.cfg (/data/config)",
+        "Docker Socket Permissions und SSH Key Auto-Inject",
+        "Verfuegbare IPs werden beim Dialog-Oeffnen geladen",
+        "Workflow verwendet korrekten Author fuer Commits"
+      ]
+    }
+  },
+  {
     "version": "v1.0.12",
     "date": "2025-12-31",
     "changes": {
