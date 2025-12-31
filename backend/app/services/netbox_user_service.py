@@ -14,8 +14,18 @@ class NetBoxUserService:
     """Service für NetBox User-Management"""
 
     def __init__(self):
-        self.base_url = settings.netbox_url
-        self.token = settings.netbox_token
+        # Keine statischen Werte speichern - Settings können sich nach Hot-Reload aendern
+        pass
+
+    @property
+    def base_url(self) -> str:
+        """NetBox URL dynamisch aus Settings"""
+        return settings.netbox_url
+
+    @property
+    def token(self) -> Optional[str]:
+        """NetBox Token dynamisch aus Settings (Hot-Reload-faehig)"""
+        return settings.netbox_token
 
     @property
     def headers(self) -> dict:

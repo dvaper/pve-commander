@@ -119,7 +119,7 @@ async def root():
     """Health Check"""
     return {
         "app": settings.app_name,
-        "version": "1.0.9",
+        "version": "1.0.10",
         "status": "running",
     }
 

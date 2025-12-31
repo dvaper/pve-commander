@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.10 (2025-12-31)
+
+### Bugfixes
+- NetBox Token/URL nach Setup-Wizard sofort verfuegbar (Hot-Reload Fix)
+- NetBox User-Sync Timeout von 5 auf 10 Minuten erhoeht (fuer langsame Erstinstallation)
+- Backup-Tabelle: Aktionen-Spalte verbreitert und rechtsbuendig
+
+### Neue Features
+- Manueller NetBox-Admin Sync Button (Einstellungen > NetBox > Benutzer verwalten)
+
 ## v1.0.9 (2025-12-31)
 
 ### Bugfixes

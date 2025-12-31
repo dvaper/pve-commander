@@ -345,9 +345,9 @@ async def sync_netbox_superuser(username: str, password: str, email: str, wait_f
 
         # Optional: Warte bis NetBox API erreichbar ist (fuer Erstinstallation)
         if wait_for_ready:
-            logger.info("Warte auf NetBox-Initialisierung (max 5 Minuten)...")
-            max_wait = 300  # 5 Minuten
-            interval = 10  # Alle 10 Sekunden pruefen
+            logger.info("Warte auf NetBox-Initialisierung (max 10 Minuten, bei Erststart dauern DB-Migrationen laenger)...")
+            max_wait = 600  # 10 Minuten (NetBox-Migrationen koennen 5+ Minuten dauern)
+            interval = 15  # Alle 15 Sekunden pruefen
             waited = 0
 
             while waited < max_wait:
@@ -361,10 +361,12 @@ async def sync_netbox_superuser(username: str, password: str, email: str, wait_f
                     pass
                 await asyncio.sleep(interval)
                 waited += interval
+                if waited % 60 == 0:
+                    logger.info(f"NetBox-Initialisierung: {waited // 60} Minuten gewartet...")
 
             if waited >= max_wait:
-                logger.warning("NetBox wurde nicht rechtzeitig bereit")
-                return {"success": False, "action": "timeout", "message": "NetBox nicht rechtzeitig bereit"}
+                logger.warning("NetBox wurde nicht rechtzeitig bereit (10 Minuten Timeout)")
+                return {"success": False, "action": "timeout", "message": "NetBox nicht rechtzeitig bereit. Bitte NetBox-User manuell synchronisieren (Einstellungen > NetBox)."}
 
         # Python-Script zum Aktualisieren des Superusers
         python_script = f'''

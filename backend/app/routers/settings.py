@@ -951,6 +951,79 @@ except User.DoesNotExist:
     return {"success": True, "message": "Benutzer geloescht"}
 
 
+@router.post("/netbox-users/sync-admin")
+async def sync_netbox_admin_user(
+    current_user: User = Depends(get_current_super_admin_user),
+):
+    """
+    Synchronisiert den NetBox-Admin mit den Setup-Wizard Credentials.
+
+    Aktualisiert den Default-Admin (admin/admin@example.com) auf die
+    in der .env konfigurierten Werte (NETBOX_ADMIN_USER, NETBOX_ADMIN_PASSWORD, NETBOX_ADMIN_EMAIL).
+
+    Nur Super-Admin.
+    """
+    # Credentials aus Settings laden
+    username = app_settings.netbox_admin_user
+    password = app_settings.netbox_admin_password
+    email = app_settings.netbox_admin_email
+
+    if not username or not password:
+        raise HTTPException(
+            status_code=400,
+            detail="NetBox-Admin Credentials nicht konfiguriert (NETBOX_ADMIN_USER/PASSWORD in .env)"
+        )
+
+    script = f'''
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+# Versuche existierenden admin zu finden und zu aktualisieren
+try:
+    user = User.objects.get(username="admin")
+    user.username = "{username}"
+    user.email = "{email}"
+    user.set_password("{password}")
+    user.is_superuser = True
+    user.is_staff = True
+    user.is_active = True
+    user.save()
+    print("SUCCESS:admin umbenannt zu {username}")
+except User.DoesNotExist:
+    # Kein admin User, versuche Ziel-User zu finden
+    try:
+        user = User.objects.get(username="{username}")
+        user.email = "{email}"
+        user.set_password("{password}")
+        user.is_superuser = True
+        user.is_staff = True
+        user.is_active = True
+        user.save()
+        print("SUCCESS:{username} aktualisiert")
+    except User.DoesNotExist:
+        # Kein User vorhanden, erstelle neuen
+        user = User.objects.create_superuser("{username}", "{email}", "{password}")
+        print("SUCCESS:{username} erstellt")
+'''
+
+    result = run_netbox_command(script)
+
+    if "SUCCESS:" in result["stdout"]:
+        action = result["stdout"].split("SUCCESS:")[1].strip().split("\n")[0]
+        return {"success": True, "message": action}
+
+    if result["stderr"]:
+        raise HTTPException(
+            status_code=500,
+            detail=f"NetBox-Fehler: {result['stderr'][:200]}"
+        )
+
+    raise HTTPException(
+        status_code=500,
+        detail="Unbekannter Fehler beim Synchronisieren"
+    )
+
+
 # ==================== Playbook OS-Types und Kategorien ====================
 
 # Basis-Werte (nicht loeschbar)

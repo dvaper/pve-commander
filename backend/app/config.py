@@ -84,6 +84,10 @@ class Settings(BaseSettings):
     netbox_token: Optional[str] = None
     # Externe URL fuer Frontend (konfigurierbar im Setup-Wizard)
     netbox_external_url: Optional[str] = None
+    # NetBox Admin Credentials (aus Setup-Wizard)
+    netbox_admin_user: str = "admin"
+    netbox_admin_password: Optional[str] = None
+    netbox_admin_email: str = "admin@example.com"
 
     # ==========================================================================
     # Proxmox API

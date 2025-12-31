@@ -533,11 +533,11 @@ const backupOptions = ref({
 const backups = ref([])
 const loadingBackups = ref(false)
 const backupHeaders = [
-  { title: 'Datum', key: 'created_at', width: 145 },
-  { title: 'Groesse', key: 'size_bytes', width: 80 },
+  { title: 'Datum', key: 'created_at', width: 160 },
+  { title: 'Groesse', key: 'size_bytes', width: 90 },
   { title: 'Komponenten', key: 'components' },
-  { title: 'Typ', key: 'is_scheduled', width: 50 },
-  { title: 'Aktionen', key: 'actions', width: 130, sortable: false },
+  { title: 'Typ', key: 'is_scheduled', width: 60 },
+  { title: 'Aktionen', key: 'actions', width: 150, sortable: false, align: 'end' },
 ]
 
 // Zeitplan

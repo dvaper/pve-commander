@@ -13,6 +13,18 @@
           </div>
           <v-spacer></v-spacer>
           <v-btn
+            variant="outlined"
+            class="mr-2"
+            :loading="syncingAdmin"
+            @click="syncAdminUser"
+          >
+            <v-icon start>mdi-sync</v-icon>
+            Admin synchronisieren
+            <v-tooltip activator="parent" location="bottom">
+              Synchronisiert den NetBox-Admin mit den Setup-Wizard Credentials
+            </v-tooltip>
+          </v-btn>
+          <v-btn
             color="primary"
             @click="openCreateDialog"
           >
@@ -322,6 +334,7 @@ const showSnackbarGlobal = inject('showSnackbar', null)
 const loading = ref(true)
 const saving = ref(false)
 const deleting = ref(false)
+const syncingAdmin = ref(false)
 const users = ref([])
 const netboxError = ref(null)
 
@@ -377,6 +390,20 @@ async function loadUsers() {
     users.value = []
   } finally {
     loading.value = false
+  }
+}
+
+async function syncAdminUser() {
+  syncingAdmin.value = true
+  try {
+    const response = await api.post('/api/settings/netbox-users/sync-admin')
+    showMessage(response.data.message || 'Admin synchronisiert')
+    await loadUsers()
+  } catch (e) {
+    const errorMsg = e.response?.data?.detail || 'Synchronisierung fehlgeschlagen'
+    showMessage(errorMsg, 'error')
+  } finally {
+    syncingAdmin.value = false
   }
 }
 
