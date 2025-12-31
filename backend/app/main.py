@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     description="Standalone VM-Management fuer Proxmox mit integriertem NetBox, Ansible und Terraform",
-    version="1.0.9",
+    version="1.0.10",
     lifespan=lifespan,
 )
 
