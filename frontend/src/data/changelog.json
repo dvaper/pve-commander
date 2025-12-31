@@ -1,5 +1,18 @@
 [
   {
+    "version": "v1.0.7",
+    "date": "2025-12-31",
+    "changes": {
+      "Bugfixes": [
+        "NetBox Superuser wird automatisch bei Erstinstallation erstellt",
+        "DOCKER_GID Default auf 989 geaendert (Debian Standard)"
+      ],
+      "Sicherheit": [
+        "NetBox API Token wird automatisch generiert"
+      ]
+    }
+  },
+  {
     "version": "v1.0.6",
     "date": "2025-12-31",
     "changes": {
