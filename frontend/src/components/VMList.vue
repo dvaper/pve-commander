@@ -354,7 +354,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, inject } from 'vue'
+import { ref, onMounted, onActivated, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/client'
 import ActionMenu from '@/components/common/ActionMenu.vue'
@@ -698,4 +698,7 @@ async function confirmBatchDestroy() {
 defineExpose({ loadVMs })
 
 onMounted(loadVMs)
+
+// Daten neu laden wenn Komponente reaktiviert wird (keep-alive Cache)
+onActivated(loadVMs)
 </script>
