@@ -1,5 +1,26 @@
 [
   {
+    "version": "v1.0.2",
+    "date": "2025-12-31",
+    "changes": {
+      "Performance": [
+        "Ansible-Ausfuehrung optimiert"
+      ],
+      "Dokumentation": [
+        "CHANGELOG fuer v1.0.1 aktualisiert"
+      ],
+      "Bugfixes": [
+        "Service-Status zeigt Details, NetBox-Benutzer in Settings verlinkt",
+        "VM-Liste laedt Daten bei Reaktivierung neu",
+        "Inventory View laedt Daten bei Navigation und Reaktivierung neu",
+        "NetBox External URL wird automatisch im Setup-Wizard gesetzt",
+        "Yaml Callback deaktiviert (erfordert community.general)",
+        "Korrekter Pfad fuer ansible.cfg (/data/config)",
+        "Docker Socket Permissions und SSH Key Auto-Inject"
+      ]
+    }
+  },
+  {
     "version": "v1.0.1",
     "date": "2025-12-31",
     "changes": {
