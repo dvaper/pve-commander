@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.2.0",
+    "date": "2025-12-31",
+    "changes": {
+      "Features": [
+        "NetBox Scan-Cache mit Auto-Scan und Delta-Erkennung"
+      ]
+    }
+  },
+  {
     "version": "v1.1.0",
     "date": "2025-12-31",
     "changes": {
