@@ -4,6 +4,16 @@
 # Config-Verzeichnis sicherstellen
 mkdir -p /data/config
 
+# Ansible Fact-Cache Verzeichnis erstellen
+mkdir -p /tmp/ansible_facts_cache
+
+# Ansible-Konfiguration kopieren (optimierte Einstellungen)
+if [ -f "/app/default-data/ansible.cfg" ] && [ ! -f "/data/ansible.cfg" ]; then
+    echo "Kopiere Ansible-Konfiguration..."
+    cp /app/default-data/ansible.cfg /data/ansible.cfg
+    echo "Ansible-Konfiguration installiert."
+fi
+
 # Default-Playbooks synchronisieren (neue kopieren, existierende nicht ueberschreiben)
 if [ -d "/app/default-data/playbooks" ] && [ -d "/data/playbooks" ]; then
     echo "Synchronisiere Playbooks..."

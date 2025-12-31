@@ -47,6 +47,10 @@ class AnsibleService:
         env["ANSIBLE_FORCE_COLOR"] = "1"
         env["PYTHONUNBUFFERED"] = "1"
         env["ANSIBLE_HOST_KEY_CHECKING"] = "False"
+        # Optimierte Ansible-Konfiguration verwenden
+        ansible_cfg = Path(settings.data_dir) / "ansible.cfg"
+        if ansible_cfg.exists():
+            env["ANSIBLE_CONFIG"] = str(ansible_cfg)
 
         # ExecutionRunner übernimmt Status-Tracking, Log-Streaming und DB-Speicherung
         runner = ExecutionRunner(
