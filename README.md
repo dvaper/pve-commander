@@ -83,7 +83,7 @@
 
 | Bereich | Funktionen |
 |---------|------------|
-| **VM-Management** | Deployment via Terraform, Power Control, Snapshots, Cloning, Migration, Backup |
+| **VM-Management** | Deployment via Terraform, Power Control, Snapshots, Cloning, Migration, Backup, dynamische Node-Erkennung |
 | **RBAC** | Rollen mit granularen Berechtigungen, Host-Zuweisungen, Gruppen |
 | **Audit** | Hash-Chain Verifikation, Export (JSON/CSV), Snapshot-Logging |
 | **Ansible** | Playbook-Ausfuehrung mit Live-Output (WebSocket), Inventory/Playbook Editor |
@@ -183,14 +183,6 @@ http://<vm-ip>:8080/setup
 ```bash
 docker compose pull && docker compose up -d
 ```
-
-> **Hinweis fuer Updates von v0.6.3 oder aelter:**
-> Ab v0.6.4 laeuft der Container als Non-root User (UID 1000).
-> Die Berechtigungen muessen einmalig angepasst werden:
-> ```bash
-> sudo chown -R 1000:1000 data/
-> docker compose up -d
-> ```
 
 ## Architektur
 
@@ -338,7 +330,7 @@ MIT
 
 | Area | Functions |
 |------|-----------|
-| **VM Management** | Deployment via Terraform, Power Control, Snapshots, Cloning, Migration, Backup |
+| **VM Management** | Deployment via Terraform, Power Control, Snapshots, Cloning, Migration, Backup, dynamic node discovery |
 | **RBAC** | Roles with granular permissions, host assignments, groups |
 | **Audit** | Hash-chain verification, export (JSON/CSV), snapshot logging |
 | **Ansible** | Playbook execution with live output (WebSocket), inventory/playbook editor |
@@ -438,14 +430,6 @@ http://<vm-ip>:8080/setup
 ```bash
 docker compose pull && docker compose up -d
 ```
-
-> **Note for updates from v0.6.3 or older:**
-> Starting with v0.6.4, the container runs as non-root user (UID 1000).
-> Permissions need to be adjusted once:
-> ```bash
-> sudo chown -R 1000:1000 data/
-> docker compose up -d
-> ```
 
 ## Architecture
 
