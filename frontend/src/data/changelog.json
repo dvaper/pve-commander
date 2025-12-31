@@ -3,266 +3,30 @@
     "version": "v1.2.2",
     "date": "2025-12-31",
     "changes": {
-      "Bugfixes": [
-        "Raw State Data Hoehenbegrenzung entfernt"
-      ]
-    }
-  },
-  {
-    "version": "v1.2.1",
-    "date": "2025-12-31",
-    "changes": {
-      "Dokumentation": [
-        "CHANGELOG komprimiert"
-      ],
-      "Bugfixes": [
-        "Terraform State Raw Data Bereich vergroessert"
-      ]
-    }
-  },
-  {
-    "version": "v1.2.0",
-    "date": "2025-12-31",
-    "changes": {
       "Features": [
         "NetBox Scan-Cache mit Auto-Scan und Delta-Erkennung"
+      ],
+      "Bugfixes": [
+        "Terraform State Raw Data Bereich ohne Hoehenbegrenzung"
       ]
     }
   },
   {
     "version": "v1.1.0",
     "date": "2025-12-31",
+    "title": "Erste stabile Version",
     "changes": {
-      "Performance": [
-        "Ansible-Ausfuehrung optimiert"
-      ],
-      "Features": [
-        "NetBox als optionales Docker Compose Profile"
-      ],
-      "Refactoring": [
-        "Storage und Templates werden dynamisch aus Proxmox geladen"
-      ],
-      "Sicherheit": [
-        "NetBox API Token wird automatisch generiert"
-      ],
-      "Dokumentation": [
-        "CHANGELOG fuer v1.0.1 aktualisiert",
-        "GitHub Community Standards hinzugefuegt",
-        "README fuer v1.0.0 aktualisiert"
-      ],
-      "Bugfixes": [
-        "Backup-Loeschen-Button in SettingsView hinzugefuegt (v1.0.12)",
-        "Backup-Tabelle Aktionen-Buttons immer sichtbar (v1.0.11)",
-        "Fresh-Installation Fixes fuer v1.0.10",
-        "5 Bugfixes fuer v1.0.9",
-        "Node-IP wird dynamisch via DNS ermittelt statt Placeholder",
-        "NetBox Superuser wird automatisch bei Erstinstallation erstellt",
-        "DOCKER_GID Default auf 989 geaendert (Debian Standard)",
-        "Setup-Wizard zeigt Anleitung fuer manuellen NetBox-Start",
-        "NetBox Superuser-Sync wartet auf NetBox-Initialisierung (max 5 Min)",
-        "SKIP_SUPERUSER=true verhindert doppelten NetBox-User bei Erstinstallation",
-        "Service-Status zeigt Details, NetBox-Benutzer in Settings verlinkt",
-        "VM-Liste laedt Daten bei Reaktivierung neu",
-        "Inventory View laedt Daten bei Navigation und Reaktivierung neu",
-        "NetBox External URL wird automatisch im Setup-Wizard gesetzt",
-        "Yaml Callback deaktiviert (erfordert community.general)",
-        "Korrekter Pfad fuer ansible.cfg (/data/config)",
-        "Docker Socket Permissions und SSH Key Auto-Inject",
-        "Verfuegbare IPs werden beim Dialog-Oeffnen geladen",
-        "Workflow verwendet korrekten Author fuer Commits"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.12",
-    "date": "2025-12-31",
-    "changes": {
-      "Bugfixes": [
-        "Backup-Loeschen-Button in SettingsView hinzugefuegt (v1.0.12)"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.11",
-    "date": "2025-12-31",
-    "changes": {
-      "Bugfixes": [
-        "Backup-Tabelle Aktionen-Buttons immer sichtbar (v1.0.11)"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.10",
-    "date": "2025-12-31",
-    "changes": {
-      "Bugfixes": [
-        "Fresh-Installation Fixes fuer v1.0.10"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.9",
-    "date": "2025-12-31",
-    "changes": {
-      "Bugfixes": [
-        "5 Bugfixes fuer v1.0.9"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.8",
-    "date": "2025-12-31",
-    "changes": {
-      "Bugfixes": [
-        "Node-IP wird dynamisch via DNS ermittelt statt Placeholder"
-      ],
-      "Refactoring": [
-        "Storage und Templates werden dynamisch aus Proxmox geladen"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.7",
-    "date": "2025-12-31",
-    "changes": {
-      "Bugfixes": [
-        "NetBox Superuser wird automatisch bei Erstinstallation erstellt",
-        "DOCKER_GID Default auf 989 geaendert (Debian Standard)"
-      ],
-      "Sicherheit": [
-        "NetBox API Token wird automatisch generiert"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.6",
-    "date": "2025-12-31",
-    "changes": {
-      "Wartung": [
-        "Version aktualisiert"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.5",
-    "date": "2025-12-31",
-    "changes": {
-      "Bugfixes": [
-        "Setup-Wizard zeigt Anleitung fuer manuellen NetBox-Start"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.4",
-    "date": "2025-12-31",
-    "changes": {
-      "Bugfixes": [
-        "NetBox Superuser-Sync wartet auf NetBox-Initialisierung (max 5 Min)"
-      ],
-      "Features": [
-        "NetBox als optionales Docker Compose Profile"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.3",
-    "date": "2025-12-31",
-    "changes": {
-      "Bugfixes": [
-        "SKIP_SUPERUSER=true verhindert doppelten NetBox-User bei Erstinstallation"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.2",
-    "date": "2025-12-31",
-    "changes": {
-      "Performance": [
-        "Ansible-Ausfuehrung optimiert"
-      ],
-      "Dokumentation": [
-        "CHANGELOG fuer v1.0.1 aktualisiert"
-      ],
-      "Bugfixes": [
-        "Service-Status zeigt Details, NetBox-Benutzer in Settings verlinkt",
-        "VM-Liste laedt Daten bei Reaktivierung neu",
-        "Inventory View laedt Daten bei Navigation und Reaktivierung neu",
-        "NetBox External URL wird automatisch im Setup-Wizard gesetzt",
-        "Yaml Callback deaktiviert (erfordert community.general)",
-        "Korrekter Pfad fuer ansible.cfg (/data/config)",
-        "Docker Socket Permissions und SSH Key Auto-Inject"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.1",
-    "date": "2025-12-31",
-    "changes": {
-      "Dokumentation": [
-        "GitHub Community Standards hinzugefuegt",
-        "README fuer v1.0.0 aktualisiert"
-      ],
-      "Bugfixes": [
-        "Verfuegbare IPs werden beim Dialog-Oeffnen geladen",
-        "Workflow verwendet korrekten Author fuer Commits"
-      ]
-    }
-  },
-  {
-    "version": "v1.0.0",
-    "date": "2025-12-31",
-    "title": "Initial Release",
-    "changes": {
-      "VM-Management": [
-        "VM-Deployment via Proxmox und Terraform",
-        "Power Control: Start, Stop, Shutdown, Reboot",
-        "Snapshot Management: Erstellen, Loeschen, Rollback",
-        "VM Cloning: Full Clone und Linked Clone",
-        "VM Migration zwischen Proxmox-Nodes",
-        "Backup & Restore fuer VMs und Container",
-        "Dynamische Node-Erkennung aus Proxmox-Cluster"
-      ],
-      "RBAC": [
-        "Rollen und Berechtigungen verwalten",
-        "Benutzer-Rollen-Zuweisung",
-        "Gruppen- und Playbook-Zuordnung",
-        "Host-Zuweisungen"
-      ],
-      "Audit-Logging": [
-        "Manipulationssichere Hash-Chain",
-        "Chain-Verifikation im Frontend",
-        "Export als JSON/CSV"
-      ],
-      "Ansible": [
-        "Playbook Execution mit Live-Output via WebSocket",
-        "Inventory Browser und Editor",
-        "Playbook Editor mit YAML-Syntax-Highlighting"
-      ],
-      "Cloud-Init": [
-        "13 spezialisierte Profile (Docker, K8s, Web, DB, etc.)",
-        "SSH-Hardening und Security Best Practices"
-      ],
-      "NetBox": [
-        "Integrierte IPAM/DCIM Loesung",
-        "Automatische IP-Vergabe aus Prefixes",
-        "VLAN-Verwaltung"
-      ],
-      "Benachrichtigungen": [
-        "E-Mail via SMTP",
-        "Gotify Push-Benachrichtigungen",
-        "Webhook-Integration mit HMAC-Signatur"
-      ],
-      "UI/UX": [
-        "5 Farbthemes mit Light/Dark Mode",
-        "Dashboard mit Cluster-Status und Speicherauslastung",
-        "Command Palette (Cmd+K)",
-        "Security Status Panel fuer Administratoren"
+      "Kernfunktionen": [
+        "VM-Lifecycle: Deployment, Power Control, Snapshots, Cloning, Migration, Backup",
+        "Ansible: Playbook-Ausfuehrung mit Live-Output (WebSocket)",
+        "NetBox: Integriertes IPAM mit automatischer IP-Vergabe",
+        "RBAC: Rollen, Berechtigungen, Gruppen- und Host-Zuweisungen",
+        "Audit: Manipulationssichere Hash-Chain mit Export"
       ],
       "Infrastruktur": [
-        "Docker Compose Setup mit integriertem NetBox",
-        "Non-root Container-Ausfuehrung",
-        "HTTP Security Headers",
-        "Rate-Limiting und Authentifizierung"
+        "Docker Compose mit integriertem NetBox",
+        "13 Cloud-Init Profile (Docker, K8s, Web, DB, etc.)",
+        "5 Farbthemes, Command Palette, Security Panel"
       ]
     }
   }
