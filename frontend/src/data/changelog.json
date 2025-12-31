@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.0.9",
+    "date": "2025-12-31",
+    "changes": {
+      "Bugfixes": [
+        "5 Bugfixes fuer v1.0.9"
+      ]
+    }
+  },
+  {
     "version": "v1.0.8",
     "date": "2025-12-31",
     "changes": {
