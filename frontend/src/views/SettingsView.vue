@@ -523,8 +523,11 @@
                         <v-list-item-title class="text-caption">{{ backup.filename }}</v-list-item-title>
                         <v-list-item-subtitle class="text-caption">{{ formatBackupDate(backup.created_at) }}</v-list-item-subtitle>
                         <template v-slot:append>
-                          <v-btn icon size="x-small" variant="text" @click="downloadBackup(backup.id)">
+                          <v-btn icon size="x-small" variant="text" @click="downloadBackup(backup.id)" title="Herunterladen">
                             <v-icon size="16">mdi-download</v-icon>
+                          </v-btn>
+                          <v-btn icon size="x-small" variant="text" color="error" @click="confirmDeleteBackup(backup)" title="Loeschen">
+                            <v-icon size="16">mdi-delete</v-icon>
                           </v-btn>
                         </template>
                       </v-list-item>
@@ -862,6 +865,24 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Backup loeschen Dialog -->
+    <v-dialog v-model="deleteBackupDialog" max-width="400">
+      <v-card>
+        <v-card-title class="text-error">
+          <v-icon start color="error">mdi-alert</v-icon>
+          Backup loeschen
+        </v-card-title>
+        <v-card-text>
+          Soll das Backup <strong>{{ backupToDelete?.filename }}</strong> wirklich geloescht werden?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="deleteBackupDialog = false">Abbrechen</v-btn>
+          <v-btn color="error" :loading="deleting" @click="deleteBackup">Loeschen</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -884,8 +905,11 @@ const testing = ref(false)
 const testingSmtp = ref(false)
 const backupLoading = ref(false)
 const restoring = ref(false)
+const deleting = ref(false)
 const sshKeyDialog = ref(false)
 const restoreDialog = ref(false)
+const deleteBackupDialog = ref(false)
+const backupToDelete = ref(null)
 const restoreFile = ref(null)
 const backups = ref([])
 const savingSchedule = ref(false)
@@ -1364,6 +1388,28 @@ async function downloadBackup(backupId) {
     link.remove()
   } catch (e) {
     showSnackbar?.('Download fehlgeschlagen', 'error')
+  }
+}
+
+function confirmDeleteBackup(backup) {
+  backupToDelete.value = backup
+  deleteBackupDialog.value = true
+}
+
+async function deleteBackup() {
+  if (!backupToDelete.value?.id) return
+
+  deleting.value = true
+  try {
+    await api.delete(`/api/backup/${backupToDelete.value.id}`)
+    showSnackbar?.('Backup geloescht', 'success')
+    deleteBackupDialog.value = false
+    backupToDelete.value = null
+    await loadBackups()
+  } catch (e) {
+    showSnackbar?.(e.response?.data?.detail || 'Loeschen fehlgeschlagen', 'error')
+  } finally {
+    deleting.value = false
   }
 }
 

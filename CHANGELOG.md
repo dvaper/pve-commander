@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.12 (2025-12-31)
+
+### Bugfixes
+- Backup-Loeschen-Button in Settings-Tab hinzugefuegt (war nicht vorhanden)
+- Delete-Dialog und Funktion in SettingsView implementiert
+
 ## v1.0.11 (2025-12-31)
 
 ### Bugfixes
