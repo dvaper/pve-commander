@@ -425,8 +425,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onActivated, inject } from 'vue'
+import { useRouter, onBeforeRouteUpdate } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/client'
 
@@ -761,6 +761,16 @@ onMounted(async () => {
   if (isSuperAdmin.value) {
     await loadSyncStatus()
   }
+})
+
+// Daten neu laden wenn Komponente reaktiviert wird (keep-alive Cache)
+onActivated(async () => {
+  await loadData()
+})
+
+// Daten neu laden bei Route-Update (z.B. Query-Parameter Aenderung)
+onBeforeRouteUpdate(async () => {
+  await loadData()
 })
 </script>
 
