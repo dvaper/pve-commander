@@ -238,6 +238,12 @@ def generate_netbox_secret_key() -> str:
     return ''.join(secrets.choice(charset) for _ in range(60))
 
 
+def generate_netbox_api_token() -> str:
+    """Generiert einen sicheren NetBox API Token (40 hex chars)"""
+    import secrets
+    return secrets.token_hex(20)
+
+
 def create_env_symlink(env_path: Path) -> bool:
     """
     Erstellt einen Symlink von der Root .env zur config .env.
@@ -707,6 +713,17 @@ async def save_env_config(config: SetupConfig) -> SetupSaveResult:
         netbox_secret_key = generate_netbox_secret_key()
         logger.info("Neuer NETBOX_SECRET_KEY generiert (mind. 50 Zeichen)")
 
+    # NetBox API Token pruefen/generieren (40 hex chars)
+    # Verwende config.netbox_token falls angegeben, sonst bestehenden oder neuen
+    if config.netbox_token:
+        netbox_api_token = config.netbox_token
+    else:
+        netbox_api_token = existing_values.get("NETBOX_TOKEN", "")
+        # Generischer Default-Token oder leer -> neuen generieren
+        if not netbox_api_token or netbox_api_token == "0123456789abcdef0123456789abcdef01234567":
+            netbox_api_token = generate_netbox_api_token()
+            logger.info("Neuer NETBOX_TOKEN generiert (40 hex chars)")
+
     # Neue Werte
     new_values = {
         "PROXMOX_HOST": config.proxmox_host,
@@ -726,10 +743,9 @@ async def save_env_config(config: SetupConfig) -> SetupSaveResult:
         "APP_ADMIN_EMAIL": config.app_admin_email,
         # NetBox Secret Key (mind. 50 Zeichen)
         "NETBOX_SECRET_KEY": netbox_secret_key,
+        # NetBox API Token (40 hex chars)
+        "NETBOX_TOKEN": netbox_api_token,
     }
-
-    if config.netbox_token:
-        new_values["NETBOX_TOKEN"] = config.netbox_token
 
     if config.netbox_url:
         new_values["NETBOX_URL"] = config.netbox_url
