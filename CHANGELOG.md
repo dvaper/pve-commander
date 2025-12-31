@@ -2,76 +2,21 @@
 
 ## v1.2.0 (2025-12-31)
 
-### Neue Features
-- NetBox IPAM: Scan-Ergebnisse werden in Datenbank gecacht
-- Auto-Scan beim Laden der NetBox-Seite (Cache + Hintergrund-Aktualisierung)
-- Delta-Erkennung: Zeigt neue/entfernte VLANs und VMs seit letztem Scan
-- Persistente Scan-Daten ueberleben Seiten-Navigation und App-Neustarts
-
-### Verbesserungen
-- Tab 1 (VLAN-Import) und Tab 4 (VMs) zeigen sofort gecachte Daten
-- Manueller Scan-Button weiterhin verfuegbar fuer explizite Aktualisierung
-- Cache wird bei jedem Scan automatisch aktualisiert
+- NetBox Scan-Cache: Persistente Speicherung in Datenbank
+- Auto-Scan beim Laden mit Delta-Erkennung (neue/entfernte VLANs/VMs)
 
 ## v1.1.0 (2025-12-31)
 
-Erste stabile Version von PVE Commander - Proxmox VM Management System.
+Erste stabile Version - Proxmox VM Management System.
 
-### VM-Management
-- VM-Deployment via Proxmox und Terraform
-- Power Control: Start, Stop, Shutdown, Reboot
-- Snapshot Management: Erstellen, Loeschen, Rollback
-- VM Cloning: Full Clone und Linked Clone
-- VM Migration zwischen Proxmox-Nodes
-- Backup & Restore fuer VMs und Container
-- Dynamische Node-Erkennung aus Proxmox-Cluster
-- Storage und Templates dynamisch aus Proxmox geladen
-- Node-IP wird automatisch via DNS aufgeloest
+**Kernfunktionen:**
+- VM-Lifecycle: Deployment, Power Control, Snapshots, Cloning, Migration, Backup
+- Ansible: Playbook-Ausfuehrung mit Live-Output (WebSocket)
+- NetBox: Integriertes IPAM mit automatischer IP-Vergabe
+- RBAC: Rollen, Berechtigungen, Gruppen- und Host-Zuweisungen
+- Audit: Manipulationssichere Hash-Chain mit Export
 
-### RBAC (Role-Based Access Control)
-- Rollen und Berechtigungen verwalten
-- Benutzer-Rollen-Zuweisung
-- Gruppen- und Playbook-Zuordnung
-- Host-Zuweisungen
-
-### Audit-Logging
-- Manipulationssichere Hash-Chain
-- Chain-Verifikation im Frontend
-- Export als JSON/CSV
-
-### Ansible Integration
-- Playbook Execution mit Live-Output via WebSocket
-- Inventory Browser und Editor
-- Playbook Editor mit YAML-Syntax-Highlighting
-- Ansible remote_tmp Konfiguration (verhindert Warnings)
-- Optimierte Ausfuehrung (Pipelining, SSH ControlPersist, Fact Caching)
-- Ansible-Gruppe Option "Nicht ins Inventory aufnehmen"
-
-### Cloud-Init
-- 13 spezialisierte Profile (Docker, K8s, Web, DB, etc.)
-- SSH-Hardening und Security Best Practices
-
-### NetBox Integration
-- Integrierte IPAM/DCIM Loesung
-- Automatische IP-Vergabe aus konfigurierten Prefixes
-- VLAN-Verwaltung
-- NetBox Superuser und API-Token bei Erstinstallation automatisch erstellt
-- Manueller NetBox-Admin Sync Button
-
-### Benachrichtigungen
-- E-Mail via SMTP
-- Gotify Push-Benachrichtigungen
-- Webhook-Integration mit HMAC-Signatur
-
-### UI/UX
-- 5 Farbthemes mit Light/Dark Mode
-- Dashboard mit Cluster-Status und Speicherauslastung
-- Command Palette (Cmd+K)
-- Security Status Panel fuer Administratoren
-- Backup-Tabelle mit Download und Loeschen-Buttons
-
-### Infrastruktur
-- Docker Compose Setup mit integriertem NetBox
-- Non-root Container-Ausfuehrung
-- HTTP Security Headers
-- Rate-Limiting und Authentifizierung
+**Infrastruktur:**
+- Docker Compose mit integriertem NetBox
+- 13 Cloud-Init Profile (Docker, K8s, Web, DB, etc.)
+- 5 Farbthemes, Command Palette, Security Panel
