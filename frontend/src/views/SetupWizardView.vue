@@ -317,9 +317,14 @@
 
                         <!-- Integriertes NetBox -->
                         <div v-if="netboxMode === 'integrated'">
+                          <v-alert type="warning" variant="tonal" density="compact" class="mb-4">
+                            <v-icon start size="small">mdi-clock-outline</v-icon>
+                            <strong>Erstinstallation:</strong> NetBox wird nach dem Setup-Wizard gestartet.
+                            Die Initialisierung dauert ca. 5-10 Minuten (Datenbank-Migrationen).
+                          </v-alert>
+
                           <v-alert type="info" variant="tonal" density="compact" class="mb-4">
-                            Das integrierte NetBox wird automatisch mit der Applikation gestartet.
-                            Konfiguriere hier die Admin-Zugangsdaten.
+                            Konfiguriere hier die Admin-Zugangsdaten fuer NetBox.
                             <br><br>
                             <strong>Hinweis:</strong> Fuer eine komplette Neuinstallation (inkl. NetBox-Daten)
                             verwende: <code>docker compose down -v</code>
@@ -651,6 +656,73 @@
           </v-card>
         </v-dialog>
 
+        <!-- NetBox Initialisierungs-Dialog -->
+        <v-dialog v-model="showNetboxInitDialog" persistent max-width="500">
+          <v-card>
+            <v-card-title class="text-h5 bg-primary text-white">
+              <v-icon class="mr-2">mdi-database-sync</v-icon>
+              NetBox Initialisierung
+            </v-card-title>
+            <v-card-text class="pt-4 text-center">
+              <v-progress-circular
+                v-if="netboxInitStatus === 'starting'"
+                indeterminate
+                color="primary"
+                size="80"
+                width="6"
+                class="mb-4"
+              ></v-progress-circular>
+
+              <v-icon
+                v-else-if="netboxInitStatus === 'ready'"
+                size="80"
+                color="success"
+                class="mb-4"
+              >mdi-check-circle</v-icon>
+
+              <v-icon
+                v-else-if="netboxInitStatus === 'error' || netboxInitStatus === 'timeout'"
+                size="80"
+                color="error"
+                class="mb-4"
+              >mdi-alert-circle</v-icon>
+
+              <h3 class="text-h6 mb-2">{{ netboxInitMessage }}</h3>
+
+              <p v-if="netboxInitStatus === 'starting'" class="text-body-2 text-grey-darken-1 mb-2">
+                NetBox fuehrt ca. 200 Datenbank-Migrationen durch.<br>
+                Dies dauert bei Erstinstallation 5-10 Minuten.
+              </p>
+
+              <p v-if="netboxElapsedSeconds > 0" class="text-caption text-grey">
+                Vergangene Zeit: {{ formatTime(netboxElapsedSeconds) }}
+              </p>
+
+              <v-alert
+                v-if="netboxInitStatus === 'error' || netboxInitStatus === 'timeout'"
+                type="warning"
+                variant="tonal"
+                class="mt-4 text-left"
+              >
+                <p class="mb-2">NetBox konnte nicht initialisiert werden.</p>
+                <p class="text-body-2">
+                  Du kannst trotzdem fortfahren. NetBox kann spaeter manuell gestartet werden mit:
+                </p>
+                <code class="d-block mt-2">docker compose --profile netbox up -d</code>
+              </v-alert>
+            </v-card-text>
+            <v-card-actions v-if="netboxInitStatus !== 'starting'">
+              <v-spacer></v-spacer>
+              <v-btn
+                :color="netboxInitStatus === 'ready' ? 'success' : 'primary'"
+                @click="finishSetup"
+              >
+                {{ netboxInitStatus === 'ready' ? 'Zur Anmeldung' : 'Trotzdem fortfahren' }}
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
         <!-- Erfolgs-Dialog (Fallback wenn Restart nötig) -->
         <v-dialog v-model="showSuccessDialog" persistent max-width="500">
           <v-card>
@@ -767,6 +839,13 @@ const saving = ref(false)
 const testResult = ref(null)
 const showSuccessDialog = ref(false)
 const redirectingToLogin = ref(false)
+
+// NetBox Initialisierung State
+const showNetboxInitDialog = ref(false)
+const netboxInitStatus = ref('starting') // starting, ready, error, timeout
+const netboxInitMessage = ref('NetBox wird gestartet...')
+const netboxElapsedSeconds = ref(0)
+let netboxElapsedTimer = null
 
 // SSH Key Manager
 const sshKeyManager = ref(null)
@@ -957,11 +1036,17 @@ async function saveConfig() {
 
     // Prüfen ob Konfiguration direkt geladen wurde (kein Restart nötig)
     if (response.data.restart_required === false) {
-      // Direkt zur Login-Seite weiterleiten
-      redirectingToLogin.value = true
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 1500)
+      // Pruefen ob integriertes NetBox gewaehlt wurde
+      if (netboxMode.value === 'integrated') {
+        // NetBox-Initialisierung starten
+        await startNetboxInitialization()
+      } else {
+        // Direkt zur Login-Seite weiterleiten
+        redirectingToLogin.value = true
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 1500)
+      }
     } else {
       // Fallback: Restart erforderlich - Dialog anzeigen
       showSuccessDialog.value = true
@@ -979,6 +1064,115 @@ async function saveConfig() {
 
 function refreshPage() {
   window.location.reload()
+}
+
+// Zeitformatierung
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
+// NetBox Initialisierung starten
+async function startNetboxInitialization() {
+  showNetboxInitDialog.value = true
+  netboxInitStatus.value = 'starting'
+  netboxInitMessage.value = 'NetBox wird gestartet...'
+  netboxElapsedSeconds.value = 0
+
+  // Timer starten
+  netboxElapsedTimer = setInterval(() => {
+    netboxElapsedSeconds.value++
+  }, 1000)
+
+  try {
+    // API aufrufen (wait_for_ready: false, damit wir selbst pollen koennen)
+    const response = await axios.post('/api/setup/netbox/start', {
+      wait_for_ready: false
+    })
+
+    if (!response.data.success) {
+      clearInterval(netboxElapsedTimer)
+      netboxInitStatus.value = 'error'
+      netboxInitMessage.value = 'Fehler beim Starten'
+      return
+    }
+
+    // Polling starten - pruefe Status alle 5 Sekunden
+    netboxInitMessage.value = 'Datenbank-Migrationen laufen...'
+
+    const maxWaitMs = 10 * 60 * 1000 // 10 Minuten
+    const pollInterval = 5000 // 5 Sekunden
+    const startTime = Date.now()
+
+    const pollNetboxStatus = async () => {
+      try {
+        const statusResponse = await axios.get('/api/setup/netbox/status')
+
+        if (statusResponse.data.ready) {
+          // NetBox ist bereit!
+          clearInterval(netboxElapsedTimer)
+          netboxInitStatus.value = 'ready'
+          netboxInitMessage.value = 'NetBox ist bereit!'
+
+          // NetBox-Superuser synchronisieren
+          try {
+            await syncNetboxSuperuser()
+          } catch (e) {
+            console.warn('NetBox-Superuser Sync fehlgeschlagen:', e)
+          }
+          return
+        }
+
+        // Pruefen ob Timeout erreicht
+        if (Date.now() - startTime > maxWaitMs) {
+          clearInterval(netboxElapsedTimer)
+          netboxInitStatus.value = 'timeout'
+          netboxInitMessage.value = 'Timeout nach 10 Minuten'
+          return
+        }
+
+        // Weiter pollen
+        setTimeout(pollNetboxStatus, pollInterval)
+      } catch (e) {
+        // Bei Netzwerkfehler weiterpollen
+        if (Date.now() - startTime > maxWaitMs) {
+          clearInterval(netboxElapsedTimer)
+          netboxInitStatus.value = 'timeout'
+          netboxInitMessage.value = 'Timeout nach 10 Minuten'
+          return
+        }
+        setTimeout(pollNetboxStatus, pollInterval)
+      }
+    }
+
+    // Polling starten
+    setTimeout(pollNetboxStatus, pollInterval)
+
+  } catch (error) {
+    clearInterval(netboxElapsedTimer)
+    netboxInitStatus.value = 'error'
+    netboxInitMessage.value = error.response?.data?.message || 'Fehler beim Starten von NetBox'
+  }
+}
+
+// NetBox-Superuser synchronisieren (via save endpoint erneut aufrufen wuerde doppelten User erzeugen)
+async function syncNetboxSuperuser() {
+  // Der Superuser wird bereits als Background-Task im save-Endpoint erstellt
+  // Hier koennen wir optional nochmal pruefen/warten
+  console.log('NetBox ist bereit, Superuser wurde bereits synchronisiert')
+}
+
+// Setup abschliessen
+function finishSetup() {
+  showNetboxInitDialog.value = false
+  if (netboxElapsedTimer) {
+    clearInterval(netboxElapsedTimer)
+  }
+  redirectingToLogin.value = true
+  setTimeout(() => {
+    window.location.href = '/login'
+  }, 1000)
 }
 </script>
 

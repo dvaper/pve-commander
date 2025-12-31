@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.0.4 (2025-12-31)
+
+### Verbesserungen
+- NetBox wird jetzt optional via Docker Compose Profile gestartet
+- Setup-Wizard zeigt NetBox-Initialisierungsfortschritt mit Timer an
+- Schnellerer Erst-Start: Core-Services starten sofort, NetBox erst bei Bedarf
+- Neue API-Endpoints: `/api/setup/netbox/start` und `/api/setup/netbox/status`
+
+### Aenderungen
+- NetBox-Container werden nur noch bei expliziter Auswahl im Wizard gestartet
+- Benutzer koennen zwischen integriertem NetBox, externem NetBox oder keinem NetBox waehlen
+- docker compose up -d startet nur Core-Services (Web, API, Postgres, Redis)
+- NetBox manuell starten: `docker compose --profile netbox up -d`
+
 ## v1.0.3 (2025-12-31)
 
 ### Bugfixes

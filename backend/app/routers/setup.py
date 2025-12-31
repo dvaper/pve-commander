@@ -1119,3 +1119,236 @@ async def delete_ssh_key(request: SSHKeyDeleteRequest):
     """
     ssh_service = get_ssh_service()
     return await ssh_service.delete_key(request)
+
+
+# =============================================================================
+# NetBox Profile Control (fuer Setup-Wizard)
+# =============================================================================
+
+class NetBoxStartRequest(BaseModel):
+    """Request zum Starten des NetBox-Profils"""
+    wait_for_ready: bool = Field(
+        default=True,
+        description="Warte bis NetBox bereit ist (max 10 Minuten)"
+    )
+
+
+class NetBoxStartResponse(BaseModel):
+    """Response vom NetBox-Start"""
+    success: bool
+    message: str
+    status: str  # starting, ready, error, timeout
+    elapsed_seconds: Optional[int] = None
+    error: Optional[str] = None
+
+
+class NetBoxStatusResponse(BaseModel):
+    """NetBox-Container Status"""
+    running: bool
+    ready: bool
+    status: str  # not_running, starting, ready, error
+
+
+@router.get("/netbox/status", response_model=NetBoxStatusResponse)
+async def get_netbox_status(request: Request):
+    """
+    Prueft den Status des NetBox-Containers.
+
+    Returns:
+        - running: Container laeuft (aber evtl. noch in Migration)
+        - ready: NetBox API ist erreichbar
+        - status: not_running, starting, ready, error
+    """
+    import subprocess
+    import httpx
+
+    _check_setup_rate_limit(request, "netbox_status")
+
+    # Pruefen ob Container laeuft
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "--filter", "name=pve-commander-netbox", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        container_running = "pve-commander-netbox" in result.stdout
+
+        if not container_running:
+            return NetBoxStatusResponse(
+                running=False,
+                ready=False,
+                status="not_running"
+            )
+
+        # Container laeuft - pruefen ob API bereit ist
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get("http://netbox:8080/api/status/")
+                if resp.status_code == 200:
+                    return NetBoxStatusResponse(
+                        running=True,
+                        ready=True,
+                        status="ready"
+                    )
+                else:
+                    return NetBoxStatusResponse(
+                        running=True,
+                        ready=False,
+                        status="starting"
+                    )
+        except Exception:
+            return NetBoxStatusResponse(
+                running=True,
+                ready=False,
+                status="starting"
+            )
+
+    except FileNotFoundError:
+        return NetBoxStatusResponse(
+            running=False,
+            ready=False,
+            status="error"
+        )
+    except Exception as e:
+        logger.warning(f"NetBox-Status Fehler: {e}")
+        return NetBoxStatusResponse(
+            running=False,
+            ready=False,
+            status="error"
+        )
+
+
+@router.post("/netbox/start", response_model=NetBoxStartResponse)
+async def start_netbox_profile(req: NetBoxStartRequest, request: Request):
+    """
+    Startet das NetBox-Profil via Docker Compose.
+
+    Fuehrt `docker compose --profile netbox up -d` aus.
+    Bei Erstinstallation dauert die Initialisierung 5-10 Minuten
+    (NetBox fuehrt ~200 Datenbank-Migrationen durch).
+
+    Args:
+        wait_for_ready: Wenn True, wartet der Endpoint bis NetBox bereit ist (max 10 Min)
+
+    Security: Rate-Limited (CRIT-01)
+    """
+    import subprocess
+    import httpx
+    import time
+
+    _check_setup_rate_limit(request, "netbox_start")
+    status = check_setup_status()
+    _log_setup_access(request, "netbox_start", status.setup_complete)
+
+    start_time = time.time()
+
+    try:
+        # docker compose --profile netbox up -d ausfuehren
+        # Suche docker-compose.yml im Datenverzeichnis oder typischen Pfaden
+        compose_paths = [
+            "/opt/pve-commander",
+            "/app",
+            "/data/..",  # Falls im Container
+        ]
+
+        compose_dir = None
+        for path in compose_paths:
+            if os.path.exists(os.path.join(path, "docker-compose.yml")):
+                compose_dir = path
+                break
+
+        if not compose_dir:
+            return NetBoxStartResponse(
+                success=False,
+                message="docker-compose.yml nicht gefunden",
+                status="error",
+                error="Konnte docker-compose.yml nicht finden"
+            )
+
+        logger.info(f"Starte NetBox-Profil in {compose_dir}")
+
+        result = subprocess.run(
+            ["docker", "compose", "--profile", "netbox", "up", "-d"],
+            cwd=compose_dir,
+            capture_output=True,
+            text=True,
+            timeout=120  # 2 Minuten fuer Pull/Start
+        )
+
+        if result.returncode != 0:
+            logger.error(f"docker compose up Fehler: {result.stderr}")
+            return NetBoxStartResponse(
+                success=False,
+                message="Docker Compose Fehler",
+                status="error",
+                error=result.stderr
+            )
+
+        logger.info("NetBox-Container gestartet, warte auf Initialisierung...")
+
+        if not req.wait_for_ready:
+            return NetBoxStartResponse(
+                success=True,
+                message="NetBox-Container gestartet. Initialisierung laeuft im Hintergrund.",
+                status="starting",
+                elapsed_seconds=int(time.time() - start_time)
+            )
+
+        # Warte bis NetBox bereit ist
+        max_wait = 600  # 10 Minuten
+        interval = 5  # Alle 5 Sekunden pruefen
+        waited = 0
+
+        while waited < max_wait:
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.get("http://netbox:8080/api/status/")
+                    if resp.status_code == 200:
+                        elapsed = int(time.time() - start_time)
+                        logger.info(f"NetBox ist bereit nach {elapsed} Sekunden")
+                        return NetBoxStartResponse(
+                            success=True,
+                            message=f"NetBox erfolgreich gestartet und bereit ({elapsed}s)",
+                            status="ready",
+                            elapsed_seconds=elapsed
+                        )
+            except Exception:
+                pass
+
+            await asyncio.sleep(interval)
+            waited += interval
+
+        # Timeout
+        elapsed = int(time.time() - start_time)
+        return NetBoxStartResponse(
+            success=False,
+            message=f"NetBox-Initialisierung Timeout nach {elapsed}s",
+            status="timeout",
+            elapsed_seconds=elapsed,
+            error="NetBox wurde nach 10 Minuten nicht bereit. Pruefen Sie die Container-Logs."
+        )
+
+    except subprocess.TimeoutExpired:
+        return NetBoxStartResponse(
+            success=False,
+            message="Docker Compose Timeout",
+            status="error",
+            error="docker compose up Timeout nach 2 Minuten"
+        )
+    except FileNotFoundError:
+        return NetBoxStartResponse(
+            success=False,
+            message="Docker nicht gefunden",
+            status="error",
+            error="Docker CLI nicht verfuegbar"
+        )
+    except Exception as e:
+        logger.error(f"NetBox-Start Fehler: {e}")
+        return NetBoxStartResponse(
+            success=False,
+            message="Unbekannter Fehler",
+            status="error",
+            error=str(e)
+        )
