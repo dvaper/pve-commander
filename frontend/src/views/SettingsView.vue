@@ -260,6 +260,27 @@
                 </v-btn>
               </v-card-actions>
             </v-card>
+
+            <!-- NetBox Benutzer -->
+            <v-card class="mt-4">
+              <v-card-title class="d-flex align-center">
+                <v-icon start>mdi-account-network</v-icon>
+                NetBox Benutzer
+              </v-card-title>
+              <v-card-text>
+                <p class="text-body-2 text-grey mb-4">
+                  Verwalte Benutzer fuer den direkten Zugriff auf die NetBox Web-Oberflaeche.
+                </p>
+                <v-btn
+                  color="primary"
+                  variant="outlined"
+                  :to="{ name: 'netbox-users' }"
+                >
+                  <v-icon start>mdi-account-cog</v-icon>
+                  Benutzer verwalten
+                </v-btn>
+              </v-card-text>
+            </v-card>
           </v-tabs-window-item>
 
           <!-- SSH/Ansible -->

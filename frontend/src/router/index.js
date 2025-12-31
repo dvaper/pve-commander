@@ -133,6 +133,12 @@ const routes = [
     component: () => import('@/views/SettingsView.vue'),
     meta: { requiresAuth: true, requiresSuperAdmin: true },
   },
+  {
+    path: '/settings/netbox/users',
+    name: 'netbox-users',
+    component: () => import('@/views/NetBoxUsersView.vue'),
+    meta: { requiresAuth: true, requiresSuperAdmin: true },
+  },
 
   // Benutzer-spezifische Seiten
   {
@@ -152,7 +158,7 @@ const routes = [
   { path: '/settings/cloud-init', redirect: '/executions?tab=cloud-init' },
   { path: '/settings/ssh', redirect: '/settings?tab=ansible' },
   { path: '/settings/backup', redirect: '/settings?tab=backup' },
-  { path: '/settings/netbox-users', redirect: '/settings?tab=netbox' },
+  { path: '/settings/netbox-users', redirect: '/settings/netbox/users' },
 ]
 
 const router = createRouter({

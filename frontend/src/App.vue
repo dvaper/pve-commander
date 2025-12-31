@@ -398,7 +398,8 @@ let healthInterval = null
 
 const fetchHealth = async () => {
   try {
-    const response = await axios.get('/api/health')
+    // Detailed endpoint liefert Service-Status fuer den Dialog
+    const response = await axios.get('/api/health/detailed')
     healthData.value = response.data
   } catch (e) {
     healthData.value = {
