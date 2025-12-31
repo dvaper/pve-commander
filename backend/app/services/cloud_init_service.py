@@ -712,16 +712,47 @@ EOF
             return False
 
     def _get_node_ip(self, node_name: str) -> str:
-        """Gibt die IP-Adresse eines Proxmox-Nodes zurueck (Beispiel-Konfiguration)"""
-        node_ips = {
-            "pve-node-01": "10.0.0.101",
-            "pve-node-02": "10.0.0.102",
-            "pve-node-03": "10.0.0.103",
-            "pve-node-04": "10.0.0.104",
-            "pve-node-05": "10.0.0.105",
-            "pve-node-06": "10.0.0.106",
-        }
-        return node_ips.get(node_name, "10.0.0.101")  # Default: pve-node-01
+        """Ermittelt die IP-Adresse eines Proxmox-Nodes via DNS-Aufloesung"""
+        import socket
+        from app.config import settings
+
+        # Versuche verschiedene Hostnamen-Varianten aufzuloesen
+        hostnames_to_try = [node_name]  # z.B. "aragorn"
+
+        # Domain aus PROXMOX_HOST extrahieren falls moeglich
+        if settings.proxmox_host:
+            from urllib.parse import urlparse
+            parsed = urlparse(settings.proxmox_host)
+            if parsed.hostname:
+                # Falls PROXMOX_HOST z.B. "https://aragorn.example.com" ist
+                # extrahiere "example.com" als Domain
+                parts = parsed.hostname.split(".")
+                if len(parts) >= 2:
+                    domain = ".".join(parts[1:])
+                    hostnames_to_try.append(f"{node_name}.{domain}")  # z.B. "gandalf.example.com"
+
+        for hostname in hostnames_to_try:
+            try:
+                ip = socket.gethostbyname(hostname)
+                logger.debug(f"Node {node_name} aufgeloest zu {ip} via {hostname}")
+                return ip
+            except socket.gaierror:
+                continue
+
+        # Fallback: Proxmox API Host verwenden (besser als nichts)
+        if settings.proxmox_host:
+            from urllib.parse import urlparse
+            parsed = urlparse(settings.proxmox_host)
+            if parsed.hostname:
+                try:
+                    ip = socket.gethostbyname(parsed.hostname)
+                    logger.warning(f"Node {node_name} nicht aufloesbar, verwende API-Host {ip}")
+                    return ip
+                except socket.gaierror:
+                    pass
+
+        logger.error(f"Konnte IP fuer Node {node_name} nicht ermitteln")
+        raise ValueError(f"Node {node_name} nicht aufloesbar")
 
 
 # Singleton-Instanz
