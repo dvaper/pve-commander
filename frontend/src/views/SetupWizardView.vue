@@ -656,7 +656,50 @@
           </v-card>
         </v-dialog>
 
-        <!-- NetBox Initialisierungs-Dialog -->
+        <!-- NetBox Manual Start Dialog -->
+        <v-dialog v-model="showNetboxManualStartDialog" persistent max-width="550">
+          <v-card>
+            <v-card-title class="text-h5 bg-success text-white">
+              <v-icon class="mr-2">mdi-check-circle</v-icon>
+              Setup abgeschlossen
+            </v-card-title>
+            <v-card-text class="pt-4">
+              <v-alert type="info" variant="tonal" class="mb-4">
+                <v-icon start>mdi-information</v-icon>
+                <strong>NetBox muss separat gestartet werden</strong>
+              </v-alert>
+
+              <p class="mb-3">
+                Die Grundkonfiguration ist abgeschlossen. Um NetBox zu aktivieren,
+                fuehre folgenden Befehl auf dem Server aus:
+              </p>
+
+              <v-sheet color="grey-darken-3" class="pa-3 rounded mb-4" style="font-family: monospace;">
+                <code class="text-white">cd /opt/pve-commander && docker compose --profile netbox up -d</code>
+              </v-sheet>
+
+              <v-alert type="warning" variant="tonal" density="compact" class="mb-3">
+                <v-icon start size="small">mdi-clock-outline</v-icon>
+                <strong>Hinweis:</strong> Die NetBox-Initialisierung dauert bei Erstinstallation ca. 5-10 Minuten
+                (Datenbank-Migrationen).
+              </v-alert>
+
+              <p class="text-body-2 text-grey-darken-1">
+                Du kannst dich jetzt bereits anmelden. NetBox-Funktionen werden verfuegbar,
+                sobald die Initialisierung abgeschlossen ist.
+              </p>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="success" @click="goToLogin">
+                <v-icon start>mdi-login</v-icon>
+                Zur Anmeldung
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <!-- NetBox Initialisierungs-Dialog (unused, kept for future) -->
         <v-dialog v-model="showNetboxInitDialog" persistent max-width="500">
           <v-card>
             <v-card-title class="text-h5 bg-primary text-white">
@@ -846,6 +889,9 @@ const netboxInitStatus = ref('starting') // starting, ready, error, timeout
 const netboxInitMessage = ref('NetBox wird gestartet...')
 const netboxElapsedSeconds = ref(0)
 let netboxElapsedTimer = null
+
+// NetBox Manual Start Dialog
+const showNetboxManualStartDialog = ref(false)
 
 // SSH Key Manager
 const sshKeyManager = ref(null)
@@ -1038,8 +1084,8 @@ async function saveConfig() {
     if (response.data.restart_required === false) {
       // Pruefen ob integriertes NetBox gewaehlt wurde
       if (netboxMode.value === 'integrated') {
-        // NetBox-Initialisierung starten
-        await startNetboxInitialization()
+        // Anweisungen zum manuellen Start anzeigen
+        showNetboxManualStartDialog.value = true
       } else {
         // Direkt zur Login-Seite weiterleiten
         redirectingToLogin.value = true
@@ -1169,6 +1215,12 @@ function finishSetup() {
   if (netboxElapsedTimer) {
     clearInterval(netboxElapsedTimer)
   }
+  goToLogin()
+}
+
+// Zur Login-Seite navigieren
+function goToLogin() {
+  showNetboxManualStartDialog.value = false
   redirectingToLogin.value = true
   setTimeout(() => {
     window.location.href = '/login'

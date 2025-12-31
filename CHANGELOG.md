@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.5 (2025-12-31)
+
+### Bugfixes
+- Setup-Wizard zeigt jetzt klare Anweisungen zum manuellen NetBox-Start
+  (automatischer Start aus Container nicht moeglich)
+
 ## v1.0.4 (2025-12-31)
 
 ### Verbesserungen
