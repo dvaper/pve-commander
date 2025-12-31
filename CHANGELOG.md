@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.7 (2025-12-31)
+
+### Bugfixes
+- DOCKER_GID Default auf 989 geaendert (Debian Standard)
+- NetBox Superuser und API-Token werden automatisch bei Erstinstallation erstellt
+
+### Security
+- NetBox API Token wird nun zufaellig generiert statt generischem Default-Wert
+
 ## v1.0.6 (2025-12-31)
 
 ### Aenderungen
