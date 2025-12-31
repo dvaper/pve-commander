@@ -426,16 +426,24 @@ module "{module_name}" {{
                 # NetBox VM-Fehler loggen, aber Deploy als erfolgreich werten
                 print(f"Warnung: NetBox VM-Erstellung fehlgeschlagen: {e}")
 
-            # 3. VM zu Ansible-Inventory hinzufügen (wenn Gruppe konfiguriert)
-            if vm_config.ansible_group:
+            # 3. VM zu Ansible-Inventory hinzufügen
+            # Wenn keine Gruppe konfiguriert, Default "terraform" verwenden
+            # "none" bedeutet explizit NICHT ins Inventory aufnehmen
+            inventory_group = vm_config.ansible_group
+            if inventory_group == "none":
+                print(f"Host {name} wird nicht ins Ansible-Inventory aufgenommen (explizit deaktiviert)")
+            else:
+                if not inventory_group:
+                    inventory_group = "terraform"
                 try:
                     ansible_inventory_service.add_host(
                         hostname=name,
                         ip_address=vm_config.ip_address,
-                        group=vm_config.ansible_group,
+                        group=inventory_group,
                         vmid=vm_config.vmid,
                         pve_node=vm_config.target_node,
                     )
+                    print(f"Host {name} zu Ansible-Gruppe '{inventory_group}' hinzugefuegt")
                 except Exception as e:
                     # Inventory-Fehler loggen, aber Deploy als erfolgreich werten
                     print(f"Warnung: Ansible-Inventory-Update fehlgeschlagen: {e}")

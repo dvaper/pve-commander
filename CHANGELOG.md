@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.0.9 (2025-12-31)
+
+### Bugfixes
+- Ansible Inventory: Deployed VMs werden automatisch zur "terraform" Gruppe hinzugefuegt
+- CPU-Anzeige in Cluster-Kapazitaet korrigiert (Prozent statt Dezimalwert)
+- Backup loeschen: Verbesserte Fehlerbehandlung und Dialog-Cleanup
+
+### Verbesserungen
+- Ansible remote_tmp Konfiguration hinzugefuegt (verhindert Warnings)
+- Docker-Install Playbook: Hinweis zur erwarteten Dauer (2-4 Minuten)
+- Neue Ansible-Gruppe Option "Nicht ins Inventory aufnehmen" fuer explizites Ausschliessen
+
 ## v1.0.8 (2025-12-31)
 
 ### Verbesserungen

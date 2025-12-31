@@ -745,18 +745,24 @@ function confirmDeleteBackup(backup) {
 }
 
 async function deleteBackup() {
-  if (!backupToDelete.value) return
+  if (!backupToDelete.value?.id) {
+    showSnackbar('Keine Backup-ID vorhanden', 'error')
+    return
+  }
 
   deleting.value = true
   try {
     await api.delete(`/api/backup/${backupToDelete.value.id}`)
     showSnackbar('Backup geloescht')
-    deleteDialog.value = false
     await loadBackups()
   } catch (e) {
-    showSnackbar('Loeschen fehlgeschlagen', 'error')
+    const errorMsg = e.response?.data?.detail || 'Loeschen fehlgeschlagen'
+    showSnackbar(errorMsg, 'error')
+    console.error('Backup-Loeschung fehlgeschlagen:', e.response?.data || e)
   } finally {
     deleting.value = false
+    deleteDialog.value = false
+    backupToDelete.value = null
   }
 }
 

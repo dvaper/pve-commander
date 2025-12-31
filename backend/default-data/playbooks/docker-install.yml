@@ -1,6 +1,9 @@
 # Docker Installation mit Convenience Script
 # Installiert Docker und Docker Compose
 #
+# Hinweis: Die Erstinstallation dauert 2-4 Minuten (Download ~500MB)
+#          Bei bereits installiertem Docker laeuft das Playbook in <30 Sekunden
+#
 # Verwendung:
 #   ansible-playbook playbooks/docker-install.yml -l <hostname>
 #   ansible-playbook playbooks/docker-install.yml -l <hostname> -e "docker_user=myuser"
@@ -8,6 +11,7 @@
 - name: Docker Installation
   hosts: all
   become: true
+  gather_facts: true  # Facts werden fuer ansible_user benoetigt (via Cache beschleunigt)
   vars:
     # User der zur docker-Gruppe hinzugefuegt wird
     docker_user: "{{ ansible_user | default('admin') }}"

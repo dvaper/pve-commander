@@ -417,14 +417,19 @@ async def get_ansible_groups(
     current_user: User = Depends(get_current_active_user),
 ):
     """Liste aller verfügbaren Ansible-Inventar-Gruppen (dynamisch aus Inventory)"""
+    # Default-Gruppe "terraform" wird automatisch verwendet wenn nichts ausgewählt
     groups = [
-        AnsibleGroupInfo(value="", label="Nicht ins Inventory aufnehmen"),
+        AnsibleGroupInfo(value="", label="Terraform (Standard)"),
+        AnsibleGroupInfo(value="none", label="Nicht ins Inventory aufnehmen"),
     ]
 
     # Gruppen dynamisch aus dem echten Ansible-Inventory lesen
     inventory_groups = ansible_inventory_service.get_groups()
 
     for group_name in inventory_groups:
+        # terraform ist bereits als Default oben, überspringen
+        if group_name == "terraform":
+            continue
         # Label aus value generieren (underscore zu space, capitalize)
         label = group_name.replace("_", " ").title()
         groups.append(AnsibleGroupInfo(value=group_name, label=label))

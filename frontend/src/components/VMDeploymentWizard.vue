@@ -140,7 +140,7 @@
                   prepend-inner-icon="mdi-ansible"
                   variant="outlined"
                   density="compact"
-                  hint="Nach erfolgreichem Deploy wird die VM automatisch ins Ansible-Inventar eingetragen"
+                  hint="VMs werden automatisch zur 'terraform'-Gruppe hinzugefuegt (Standard)"
                   persistent-hint
                   class="flex-grow-1"
                 ></v-select>
@@ -695,15 +695,16 @@ async function loadAnsibleGroups() {
   try {
     const response = await api.get('/api/terraform/ansible-groups')
     ansibleGroups.value = response.data
-    // Für GroupCreateDialog: Alle Gruppen ohne "Keine"-Option
+    // Für GroupCreateDialog: Alle echten Gruppen (ohne Standard und "none")
     inventoryGroups.value = response.data
-      .filter(g => g.value !== '')
+      .filter(g => g.value !== '' && g.value !== 'none')
       .map(g => ({ name: g.value }))
   } catch (e) {
     console.error('Ansible-Gruppen laden fehlgeschlagen:', e)
     // Fallback mit Standard-Gruppen
     ansibleGroups.value = [
-      { value: '', label: 'Nicht ins Inventory aufnehmen' },
+      { value: '', label: 'Terraform (Standard)' },
+      { value: 'none', label: 'Nicht ins Inventory aufnehmen' },
     ]
     inventoryGroups.value = []
   }

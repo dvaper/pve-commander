@@ -550,7 +550,8 @@ class ProxmoxService:
                 nodes.append({
                     "name": r.get("node", ""),
                     "status": r.get("status", "unknown"),
-                    "cpu_usage": r.get("cpu", 0),
+                    # Proxmox gibt CPU als 0-1 zurueck, wir brauchen 0-100%
+                    "cpu_usage": r.get("cpu", 0) * 100,
                     "cpu_total": maxcpu,
                     "memory_used": r.get("mem", 0),
                     "memory_total": maxmem,
