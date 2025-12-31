@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.1 (2025-12-31)
+
+### Bugfixes
+- Verfuegbare IP-Adressen werden beim Oeffnen des VM-Erstellungsdialogs korrekt geladen
+  - Problem: Wenn kein Default-Preset existierte, wurde `loadAvailableIPs()` nie aufgerufen
+  - Loesung: Fallback-Aufruf nach dem Laden der Basisdaten hinzugefuegt
+
 ## v1.0.0 - Initial Release (2025-12-31)
 
 ### VM-Management
