@@ -686,7 +686,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
 import SSHKeyManager from '@/components/SSHKeyManager.vue'
 
@@ -732,6 +732,28 @@ const config = ref({
 
 // NetBox Mode: 'integrated', 'external', 'none'
 const netboxMode = ref('integrated')
+
+// Berechnet die Standard-NetBox-URL basierend auf aktueller Browser-Adresse
+function calculateDefaultNetboxUrl() {
+  // NetBox laeuft auf Port 8081 (konfiguriert in docker-compose.yml)
+  const currentHost = window.location.hostname
+  const protocol = window.location.protocol
+  return `${protocol}//${currentHost}:8081`
+}
+
+// Watcher: NetBox External URL automatisch setzen bei 'integrated' Modus
+watch(netboxMode, (newMode) => {
+  if (newMode === 'integrated' && !config.value.netbox_external_url) {
+    config.value.netbox_external_url = calculateDefaultNetboxUrl()
+  }
+})
+
+// Bei Mount: Initiale NetBox URL setzen wenn integrated Modus
+onMounted(() => {
+  if (netboxMode.value === 'integrated' && !config.value.netbox_external_url) {
+    config.value.netbox_external_url = calculateDefaultNetboxUrl()
+  }
+})
 
 // Options Panels - App Admin standardmaessig offen
 const optionsPanels = ref(['admin'])
