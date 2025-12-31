@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.1 (2025-12-31)
+
+- Terraform State: Raw State Data Bereich vergroessert (70vh statt 400px)
+
 ## v1.2.0 (2025-12-31)
 
 - NetBox Scan-Cache: Persistente Speicherung in Datenbank

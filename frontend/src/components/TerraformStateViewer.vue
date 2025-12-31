@@ -709,7 +709,8 @@ defineExpose({
   word-break: break-all;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  max-height: 400px;
+  max-height: 70vh;
+  min-height: 300px;
   overflow-y: auto;
 }
 </style>
