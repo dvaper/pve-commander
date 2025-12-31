@@ -10,6 +10,7 @@ Security Features (CRIT-01):
 - force-Parameter nur fuer Rekonfiguration (mit Warnung)
 """
 import os
+import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -304,22 +305,26 @@ def create_env_symlink(env_path: Path) -> bool:
         return False
 
 
-async def sync_netbox_superuser(username: str, password: str, email: str) -> dict:
+async def sync_netbox_superuser(username: str, password: str, email: str, wait_for_ready: bool = False) -> dict:
     """
     Synchronisiert den NetBox-Superuser mit den Setup-Wizard Credentials.
 
     Da NetBox beim ersten Start mit Default-Credentials (admin/admin)
     initialisiert wird, muessen wir den User nachtraeglich aktualisieren.
 
+    Args:
+        username: NetBox Admin-Benutzername
+        password: NetBox Admin-Passwort
+        email: NetBox Admin E-Mail
+        wait_for_ready: Wenn True, warte bis NetBox API erreichbar ist (max 5 Minuten)
+
     Returns:
         dict mit success, action, message
     """
     import subprocess
+    import httpx
 
     try:
-        # Django-Management-Command im NetBox-Container ausfuehren
-        # Wir verwenden docker exec um das Passwort zu setzen
-
         # Zuerst pruefen ob der Container laeuft
         result = subprocess.run(
             ["docker", "ps", "--filter", "name=pve-commander-netbox", "--format", "{{.Names}}"],
@@ -331,6 +336,29 @@ async def sync_netbox_superuser(username: str, password: str, email: str) -> dic
         if "pve-commander-netbox" not in result.stdout:
             logger.info("NetBox-Container laeuft nicht, Superuser-Sync wird uebersprungen")
             return {"success": True, "action": "skipped", "message": "NetBox-Container nicht aktiv"}
+
+        # Optional: Warte bis NetBox API erreichbar ist (fuer Erstinstallation)
+        if wait_for_ready:
+            logger.info("Warte auf NetBox-Initialisierung (max 5 Minuten)...")
+            max_wait = 300  # 5 Minuten
+            interval = 10  # Alle 10 Sekunden pruefen
+            waited = 0
+
+            while waited < max_wait:
+                try:
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        resp = await client.get("http://netbox:8080/api/status/")
+                        if resp.status_code == 200:
+                            logger.info(f"NetBox ist bereit nach {waited} Sekunden")
+                            break
+                except Exception:
+                    pass
+                await asyncio.sleep(interval)
+                waited += interval
+
+            if waited >= max_wait:
+                logger.warning("NetBox wurde nicht rechtzeitig bereit")
+                return {"success": False, "action": "timeout", "message": "NetBox nicht rechtzeitig bereit"}
 
         # Python-Script zum Aktualisieren des Superusers
         python_script = f'''
@@ -900,20 +928,25 @@ async def save_setup(config: SetupConfig, request: Request, force: bool = False)
             result.restart_required = True
             result.message = "Konfiguration gespeichert, aber Admin-Erstellung fehlgeschlagen. Bitte Container neu starten."
 
-        # NetBox-Superuser synchronisieren
-        # (NetBox wurde moeglicherweise mit Default-Credentials gestartet)
-        try:
-            netbox_result = await sync_netbox_superuser(
-                username=config.netbox_admin_user,
-                password=config.netbox_admin_password,
-                email=config.netbox_admin_email,
-            )
-            if netbox_result["success"]:
-                logger.info(f"NetBox-Superuser: {netbox_result['action']} - {netbox_result['message']}")
-            else:
-                logger.warning(f"NetBox-Superuser Sync fehlgeschlagen: {netbox_result['message']}")
-        except Exception as e:
-            logger.warning(f"NetBox-Superuser Sync Fehler: {e}")
+        # NetBox-Superuser synchronisieren (als Background-Task)
+        # Bei Erstinstallation kann NetBox noch mit Migrationen beschaeftigt sein
+        async def netbox_sync_background():
+            try:
+                netbox_result = await sync_netbox_superuser(
+                    username=config.netbox_admin_user,
+                    password=config.netbox_admin_password,
+                    email=config.netbox_admin_email,
+                    wait_for_ready=True,  # Warte bis NetBox bereit ist
+                )
+                if netbox_result["success"]:
+                    logger.info(f"NetBox-Superuser: {netbox_result['action']} - {netbox_result['message']}")
+                else:
+                    logger.warning(f"NetBox-Superuser Sync fehlgeschlagen: {netbox_result['message']}")
+            except Exception as e:
+                logger.warning(f"NetBox-Superuser Sync Fehler: {e}")
+
+        # Background-Task starten (blockiert nicht den Setup-Wizard)
+        asyncio.create_task(netbox_sync_background())
 
         # Cloud-Init Settings in DB speichern
         try:
