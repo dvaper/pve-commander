@@ -28,6 +28,10 @@ services:
     image: ghcr.io/dvaper/pve-commander/dpc-api:${VERSION:-latest}
     container_name: pve-commander-api
     restart: unless-stopped
+    # Docker Socket Zugriff: GID der docker-Gruppe auf dem Host
+    # Ermitteln mit: stat -c '%g' /var/run/docker.sock
+    group_add:
+      - ${DOCKER_GID:-999}
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,6 +95,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # NetBox Credentials aus Setup-Wizard laden (fuer Container-Restart)
+    env_file:
+      - path: ./data/config/.env
+        required: false
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - CORS_ORIGIN_ALLOW_ALL=True

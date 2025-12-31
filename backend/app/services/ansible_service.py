@@ -87,9 +87,21 @@ class AnsibleService:
         if limits:
             cmd.extend(["-l", ",".join(limits)])
 
+        # Auto-Inject: SSH Public Key fuer add-ssh-key Playbook
+        effective_vars = dict(extra_vars) if extra_vars else {}
+        if playbook_name == "add-ssh-key" and "ssh_public_key" not in effective_vars:
+            ssh_pub_path = Path(settings.ssh_key_path).with_suffix(".pub")
+            if ssh_pub_path.exists():
+                try:
+                    ssh_public_key = ssh_pub_path.read_text().strip()
+                    effective_vars["ssh_public_key"] = ssh_public_key
+                    logger.info("SSH Public Key automatisch fuer add-ssh-key injiziert")
+                except Exception as e:
+                    logger.warning(f"Konnte SSH Public Key nicht lesen: {e}")
+
         # Extra Vars
-        if extra_vars:
-            cmd.extend(["-e", json.dumps(extra_vars)])
+        if effective_vars:
+            cmd.extend(["-e", json.dumps(effective_vars)])
 
         return cmd
 
