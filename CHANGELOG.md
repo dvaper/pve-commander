@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.2.0 (2025-12-31)
+
+### Neue Features
+- NetBox IPAM: Scan-Ergebnisse werden in Datenbank gecacht
+- Auto-Scan beim Laden der NetBox-Seite (Cache + Hintergrund-Aktualisierung)
+- Delta-Erkennung: Zeigt neue/entfernte VLANs und VMs seit letztem Scan
+- Persistente Scan-Daten ueberleben Seiten-Navigation und App-Neustarts
+
+### Verbesserungen
+- Tab 1 (VLAN-Import) und Tab 4 (VMs) zeigen sofort gecachte Daten
+- Manueller Scan-Button weiterhin verfuegbar fuer explizite Aktualisierung
+- Cache wird bei jedem Scan automatisch aktualisiert
+
 ## v1.1.0 (2025-12-31)
 
 Erste stabile Version von PVE Commander - Proxmox VM Management System.

@@ -1,13 +1,20 @@
 """
 NetBox Router - VLANs und Prefixes verwalten, Import von Proxmox
 """
+import hashlib
+import json
 import logging
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_active_user, get_current_admin_user
+from app.database import get_db
 from app.models.user import User
+from app.models.netbox_cache import NetBoxScanCache, CACHE_TYPE_VLANS, CACHE_TYPE_VMS
 from app.services.netbox_service import netbox_service
 from app.services.proxmox_service import proxmox_service
 
@@ -198,7 +205,165 @@ class VMUpdateResult(BaseModel):
 
 
 # =============================================================================
+# Cache Schemas
+# =============================================================================
+
+class CachedScanResult(BaseModel):
+    """Gecachtes Scan-Ergebnis"""
+    data: list
+    scanned_at: Optional[datetime] = None
+    items_count: int = 0
+    has_changes: bool = False  # True wenn sich Daten seit letztem Cache geaendert haben
+
+
+class VLANScanResponse(BaseModel):
+    """VLAN-Scan Antwort mit Cache-Info"""
+    vlans: list[ProxmoxVLAN]
+    cached_at: Optional[datetime] = None
+    has_changes: bool = False
+    new_vlans: list[int] = []  # IDs der neuen VLANs seit letztem Scan
+
+
+class VMScanResponse(BaseModel):
+    """VM-Scan Antwort mit Cache-Info"""
+    vms: list[VMInfo]
+    cached_at: Optional[datetime] = None
+    has_changes: bool = False
+    new_vms: list[str] = []  # Namen der neuen VMs seit letztem Scan
+    removed_vms: list[str] = []  # Namen der entfernten VMs seit letztem Scan
+
+
+# =============================================================================
+# Cache Helper Functions
+# =============================================================================
+
+def _compute_hash(data: list) -> str:
+    """Berechnet SHA256 Hash fuer Daten zur Change-Detection"""
+    # Sortiere nach konsistentem Key fuer stabilen Hash
+    sorted_data = sorted(data, key=lambda x: json.dumps(x, sort_keys=True, default=str))
+    data_str = json.dumps(sorted_data, sort_keys=True, default=str)
+    return hashlib.sha256(data_str.encode()).hexdigest()
+
+
+async def _get_cache(db: AsyncSession, cache_type: str) -> Optional[NetBoxScanCache]:
+    """Holt gecachte Daten aus der Datenbank"""
+    result = await db.execute(
+        select(NetBoxScanCache).where(NetBoxScanCache.cache_type == cache_type)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _update_cache(
+    db: AsyncSession,
+    cache_type: str,
+    data: list,
+    data_hash: str
+) -> NetBoxScanCache:
+    """Aktualisiert oder erstellt Cache-Eintrag"""
+    cache = await _get_cache(db, cache_type)
+
+    if cache:
+        cache.data = json.dumps(data, default=str)
+        cache.data_hash = data_hash
+        cache.scanned_at = datetime.utcnow()
+        cache.items_count = len(data)
+    else:
+        cache = NetBoxScanCache(
+            cache_type=cache_type,
+            data=json.dumps(data, default=str),
+            data_hash=data_hash,
+            scanned_at=datetime.utcnow(),
+            items_count=len(data)
+        )
+        db.add(cache)
+
+    await db.commit()
+    await db.refresh(cache)
+    return cache
+
+
+# =============================================================================
 # Endpoints
+# =============================================================================
+
+# =============================================================================
+# Cache Endpoints
+# =============================================================================
+
+@router.get("/cache/vlans", response_model=VLANScanResponse)
+async def get_cached_vlans(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Holt gecachte VLAN-Scan-Ergebnisse aus der Datenbank.
+
+    Gibt leere Liste zurueck wenn kein Cache vorhanden.
+    """
+    try:
+        cache = await _get_cache(db, CACHE_TYPE_VLANS)
+
+        if not cache:
+            return VLANScanResponse(
+                vlans=[],
+                cached_at=None,
+                has_changes=False,
+                new_vlans=[]
+            )
+
+        cached_data = json.loads(cache.data)
+        vlans = [ProxmoxVLAN(**v) for v in cached_data]
+
+        return VLANScanResponse(
+            vlans=vlans,
+            cached_at=cache.scanned_at,
+            has_changes=False,
+            new_vlans=[]
+        )
+    except Exception as e:
+        logger.error(f"Fehler beim Laden des VLAN-Cache: {e}")
+        return VLANScanResponse(vlans=[], cached_at=None, has_changes=False, new_vlans=[])
+
+
+@router.get("/cache/vms", response_model=VMScanResponse)
+async def get_cached_vms(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Holt gecachte VM-Scan-Ergebnisse aus der Datenbank.
+
+    Gibt leere Liste zurueck wenn kein Cache vorhanden.
+    """
+    try:
+        cache = await _get_cache(db, CACHE_TYPE_VMS)
+
+        if not cache:
+            return VMScanResponse(
+                vms=[],
+                cached_at=None,
+                has_changes=False,
+                new_vms=[],
+                removed_vms=[]
+            )
+
+        cached_data = json.loads(cache.data)
+        vms = [VMInfo(**v) for v in cached_data]
+
+        return VMScanResponse(
+            vms=vms,
+            cached_at=cache.scanned_at,
+            has_changes=False,
+            new_vms=[],
+            removed_vms=[]
+        )
+    except Exception as e:
+        logger.error(f"Fehler beim Laden des VM-Cache: {e}")
+        return VMScanResponse(vms=[], cached_at=None, has_changes=False, new_vms=[], removed_vms=[])
+
+
+# =============================================================================
+# NetBox Data Endpoints
 # =============================================================================
 
 @router.get("/vlans", response_model=list[VLANInfo])
@@ -231,9 +396,10 @@ async def get_prefixes(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/proxmox-vlans", response_model=list[ProxmoxVLAN])
+@router.get("/proxmox-vlans", response_model=VLANScanResponse)
 async def scan_proxmox_vlans(
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Proxmox-Cluster nach VLANs scannen.
@@ -241,8 +407,20 @@ async def scan_proxmox_vlans(
     Findet:
     - Bridges mit VLAN-Namen (vmbr60 -> VLAN 60)
     - VLAN-Tags in VM-Konfigurationen
+
+    Speichert Ergebnis im Cache und erkennt Aenderungen.
     """
     try:
+        # Alten Cache laden fuer Delta-Erkennung
+        old_cache = await _get_cache(db, CACHE_TYPE_VLANS)
+        old_vlan_ids = set()
+        if old_cache:
+            try:
+                old_data = json.loads(old_cache.data)
+                old_vlan_ids = {v.get('vlan_id') for v in old_data}
+            except Exception:
+                pass
+
         # Proxmox scannen
         proxmox_vlans = await proxmox_service.scan_network_vlans()
 
@@ -252,16 +430,37 @@ async def scan_proxmox_vlans(
 
         # Ergebnis zusammenstellen
         result = []
+        current_vlan_ids = set()
         for vlan in proxmox_vlans:
+            vlan_id = vlan['vlan_id']
+            current_vlan_ids.add(vlan_id)
             result.append(ProxmoxVLAN(
-                vlan_id=vlan['vlan_id'],
+                vlan_id=vlan_id,
                 bridge=vlan['bridge'],
                 nodes=vlan['nodes'],
                 vm_count=vlan.get('vm_count', 0),
-                exists_in_netbox=vlan['vlan_id'] in netbox_vlan_ids
+                exists_in_netbox=vlan_id in netbox_vlan_ids
             ))
 
-        return sorted(result, key=lambda x: x.vlan_id)
+        result = sorted(result, key=lambda x: x.vlan_id)
+
+        # Delta berechnen
+        new_vlans = list(current_vlan_ids - old_vlan_ids)
+
+        # Hash berechnen und Cache aktualisieren
+        result_dicts = [v.model_dump() for v in result]
+        new_hash = _compute_hash(result_dicts)
+        has_changes = old_cache is None or old_cache.data_hash != new_hash
+
+        # Cache speichern
+        await _update_cache(db, CACHE_TYPE_VLANS, result_dicts, new_hash)
+
+        return VLANScanResponse(
+            vlans=result,
+            cached_at=datetime.utcnow(),
+            has_changes=has_changes,
+            new_vlans=new_vlans
+        )
 
     except Exception as e:
         logger.error(f"Fehler beim Scannen der Proxmox VLANs: {e}")
@@ -453,9 +652,10 @@ def _ip_in_prefix(ip: str, prefix: str) -> bool:
 # VM Sync Endpoints
 # =============================================================================
 
-@router.get("/proxmox-vms", response_model=list[VMInfo])
+@router.get("/proxmox-vms", response_model=VMScanResponse)
 async def scan_proxmox_vms(
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Scannt Proxmox-Cluster nach VMs und vergleicht mit NetBox.
@@ -464,8 +664,20 @@ async def scan_proxmox_vms(
     - registered: VM in Proxmox UND NetBox
     - unregistered: VM in Proxmox, aber NICHT in NetBox
     - orphaned: VM in NetBox, aber NICHT mehr in Proxmox
+
+    Speichert Ergebnis im Cache und erkennt Aenderungen.
     """
     try:
+        # Alten Cache laden fuer Delta-Erkennung
+        old_cache = await _get_cache(db, CACHE_TYPE_VMS)
+        old_vm_names = set()
+        if old_cache:
+            try:
+                old_data = json.loads(old_cache.data)
+                old_vm_names = {v.get('name') for v in old_data if v.get('name')}
+            except Exception:
+                pass
+
         # 1. Alle VMs aus Proxmox holen
         proxmox_vms = await proxmox_service.scan_vm_ips()
 
@@ -479,12 +691,14 @@ async def scan_proxmox_vms(
         result = []
         proxmox_names = set()
         proxmox_ips = set()
+        current_vm_names = set()
 
         # 3. Proxmox VMs verarbeiten
         for pve_vm in proxmox_vms:
             name = pve_vm.get("name", "")
             ip = pve_vm.get("ip")
             proxmox_names.add(name)
+            current_vm_names.add(name)
             if ip:
                 proxmox_ips.add(ip)
 
@@ -515,6 +729,7 @@ async def scan_proxmox_vms(
         for netbox_vm in netbox_vms:
             name = netbox_vm["name"]
             ip = netbox_vm.get("ip_address")
+            current_vm_names.add(name)
 
             # Prüfen ob in Proxmox vorhanden
             in_proxmox = name in proxmox_names or (ip and ip in proxmox_ips)
@@ -537,7 +752,27 @@ async def scan_proxmox_vms(
                 ))
 
         # Nach VMID sortieren (None-Werte ans Ende)
-        return sorted(result, key=lambda x: (x.vmid is None, x.vmid or 0))
+        result = sorted(result, key=lambda x: (x.vmid is None, x.vmid or 0))
+
+        # Delta berechnen
+        new_vms = list(current_vm_names - old_vm_names)
+        removed_vms = list(old_vm_names - current_vm_names)
+
+        # Hash berechnen und Cache aktualisieren
+        result_dicts = [v.model_dump() for v in result]
+        new_hash = _compute_hash(result_dicts)
+        has_changes = old_cache is None or old_cache.data_hash != new_hash
+
+        # Cache speichern
+        await _update_cache(db, CACHE_TYPE_VMS, result_dicts, new_hash)
+
+        return VMScanResponse(
+            vms=result,
+            cached_at=datetime.utcnow(),
+            has_changes=has_changes,
+            new_vms=new_vms,
+            removed_vms=removed_vms
+        )
 
     except Exception as e:
         logger.error(f"Fehler beim Scannen der Proxmox VMs: {e}")

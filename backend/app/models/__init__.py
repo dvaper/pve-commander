@@ -38,6 +38,9 @@ from app.models.audit_rollback import AuditRollback
 # Terraform Health Model
 from app.models.terraform_health import TerraformHealthStatus
 
+# NetBox Cache Model
+from app.models.netbox_cache import NetBoxScanCache
+
 __all__ = [
     "User",
     "UserGroupAccess",
@@ -70,4 +73,6 @@ __all__ = [
     "AuditRollback",
     # Terraform Health Model
     "TerraformHealthStatus",
+    # NetBox Cache Model
+    "NetBoxScanCache",
 ]

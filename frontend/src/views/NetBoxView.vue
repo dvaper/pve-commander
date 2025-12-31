@@ -1137,10 +1137,15 @@ async function scanProxmox() {
   scannedOnce.value = true
   try {
     const response = await api.get('/api/netbox/proxmox-vlans')
-    proxmoxVlans.value = response.data.map(v => ({
+    proxmoxVlans.value = response.data.vlans.map(v => ({
       ...v,
       prefix: v.exists_in_netbox ? '' : `192.168.${v.vlan_id}.0/24`
     }))
+    lastVlanScan.value = response.data.cached_at
+    vlanChanges.value = {
+      hasChanges: response.data.has_changes,
+      newVlans: response.data.new_vlans || []
+    }
     // Nur VLANs auswaehlen, die noch nicht in NetBox sind
     selectedVlans.value = proxmoxVlans.value
       .filter(v => !v.exists_in_netbox)
@@ -1206,7 +1211,13 @@ async function scanProxmoxVMs() {
   vmSyncResult.value = null
   try {
     const response = await api.get('/api/netbox/proxmox-vms')
-    proxmoxVMs.value = response.data
+    proxmoxVMs.value = response.data.vms
+    lastVMScan.value = response.data.cached_at
+    vmChanges.value = {
+      hasChanges: response.data.has_changes,
+      newVms: response.data.new_vms || [],
+      removedVms: response.data.removed_vms || []
+    }
     // Nur nicht-registrierte VMs vorauswählen
     selectedVMsToSync.value = proxmoxVMs.value
       .filter(vm => vm.status === 'unregistered' && vm.vmid)
@@ -1498,12 +1509,107 @@ async function executeBulkDelete(netboxVmIds) {
 
 // Beim Laden der Komponente
 onMounted(async () => {
-  // Nur Basis-Daten laden (keine automatischen Scans)
-  // VM-Scan muss manuell per Button gestartet werden
+  // 1. Basis-Daten und Cache parallel laden
   await Promise.all([
     loadVlans(),
     loadPrefixes(),
-    loadNetboxUrl()
+    loadNetboxUrl(),
+    loadCachedVlans(),
+    loadCachedVMs()
   ])
+
+  // 2. Auto-Scan im Hintergrund starten (aktualisiert Cache wenn Aenderungen)
+  autoScanVlans()
+  autoScanVMs()
 })
+
+// ==============================================
+// Cache Functions
+// ==============================================
+
+const lastVlanScan = ref(null)
+const lastVMScan = ref(null)
+const vlanChanges = ref({ hasChanges: false, newVlans: [] })
+const vmChanges = ref({ hasChanges: false, newVms: [], removedVms: [] })
+
+// Gecachte VLANs laden
+async function loadCachedVlans() {
+  try {
+    const response = await api.get('/api/netbox/cache/vlans')
+    if (response.data.vlans?.length > 0) {
+      proxmoxVlans.value = response.data.vlans.map(v => ({
+        ...v,
+        prefix: v.exists_in_netbox ? '' : `192.168.${v.vlan_id}.0/24`
+      }))
+      lastVlanScan.value = response.data.cached_at
+      scannedOnce.value = true
+      // Nur nicht-importierte VLANs vorauswaehlen
+      selectedVlans.value = proxmoxVlans.value
+        .filter(v => !v.exists_in_netbox)
+        .map(v => v.vlan_id)
+    }
+  } catch (error) {
+    console.log('Kein VLAN-Cache vorhanden')
+  }
+}
+
+// Gecachte VMs laden
+async function loadCachedVMs() {
+  try {
+    const response = await api.get('/api/netbox/cache/vms')
+    if (response.data.vms?.length > 0) {
+      proxmoxVMs.value = response.data.vms
+      lastVMScan.value = response.data.cached_at
+      // Nur nicht-registrierte VMs vorauswaehlen
+      selectedVMsToSync.value = proxmoxVMs.value
+        .filter(vm => vm.status === 'unregistered' && vm.vmid)
+        .map(vm => vm.vmid)
+    }
+  } catch (error) {
+    console.log('Kein VM-Cache vorhanden')
+  }
+}
+
+// Auto-Scan VLANs (im Hintergrund)
+async function autoScanVlans() {
+  try {
+    const response = await api.get('/api/netbox/proxmox-vlans')
+    proxmoxVlans.value = response.data.vlans.map(v => ({
+      ...v,
+      prefix: v.exists_in_netbox ? '' : `192.168.${v.vlan_id}.0/24`
+    }))
+    lastVlanScan.value = response.data.cached_at
+    scannedOnce.value = true
+    vlanChanges.value = {
+      hasChanges: response.data.has_changes,
+      newVlans: response.data.new_vlans || []
+    }
+    // Nur nicht-importierte VLANs vorauswaehlen
+    selectedVlans.value = proxmoxVlans.value
+      .filter(v => !v.exists_in_netbox)
+      .map(v => v.vlan_id)
+  } catch (error) {
+    console.error('Auto-Scan VLANs fehlgeschlagen:', error)
+  }
+}
+
+// Auto-Scan VMs (im Hintergrund)
+async function autoScanVMs() {
+  try {
+    const response = await api.get('/api/netbox/proxmox-vms')
+    proxmoxVMs.value = response.data.vms
+    lastVMScan.value = response.data.cached_at
+    vmChanges.value = {
+      hasChanges: response.data.has_changes,
+      newVms: response.data.new_vms || [],
+      removedVms: response.data.removed_vms || []
+    }
+    // Nur nicht-registrierte VMs vorauswaehlen
+    selectedVMsToSync.value = proxmoxVMs.value
+      .filter(vm => vm.status === 'unregistered' && vm.vmid)
+      .map(vm => vm.vmid)
+  } catch (error) {
+    console.error('Auto-Scan VMs fehlgeschlagen:', error)
+  }
+}
 </script>
