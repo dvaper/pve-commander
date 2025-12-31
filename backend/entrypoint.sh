@@ -8,9 +8,9 @@ mkdir -p /data/config
 mkdir -p /tmp/ansible_facts_cache
 
 # Ansible-Konfiguration kopieren (optimierte Einstellungen)
-if [ -f "/app/default-data/ansible.cfg" ] && [ ! -f "/data/ansible.cfg" ]; then
+if [ -f "/app/default-data/ansible.cfg" ] && [ ! -f "/data/config/ansible.cfg" ]; then
     echo "Kopiere Ansible-Konfiguration..."
-    cp /app/default-data/ansible.cfg /data/ansible.cfg
+    cp /app/default-data/ansible.cfg /data/config/ansible.cfg
     echo "Ansible-Konfiguration installiert."
 fi
 

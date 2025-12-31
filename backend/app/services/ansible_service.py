@@ -48,7 +48,7 @@ class AnsibleService:
         env["PYTHONUNBUFFERED"] = "1"
         env["ANSIBLE_HOST_KEY_CHECKING"] = "False"
         # Optimierte Ansible-Konfiguration verwenden
-        ansible_cfg = Path(settings.data_dir) / "ansible.cfg"
+        ansible_cfg = Path(settings.data_dir) / "config" / "ansible.cfg"
         if ansible_cfg.exists():
             env["ANSIBLE_CONFIG"] = str(ansible_cfg)
 
