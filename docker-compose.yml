@@ -108,11 +108,10 @@ services:
       - DB_PASSWORD=${POSTGRES_PASSWORD:-netbox}
       - REDIS_HOST=redis
       - SECRET_KEY=${NETBOX_SECRET_KEY:-netbox-default-secret-key-change-me-in-production-min-50-chars}
-      - SUPERUSER_NAME=${NETBOX_ADMIN_USER:-admin}
-      - SUPERUSER_EMAIL=${NETBOX_ADMIN_EMAIL:-admin@example.com}
-      - SUPERUSER_PASSWORD=${NETBOX_ADMIN_PASSWORD:-admin}
+      # Superuser wird vom Setup-Wizard via sync_netbox_superuser() erstellt
+      # SKIP_SUPERUSER=true verhindert doppelte User bei Erstinstallation
       - SUPERUSER_API_TOKEN=${NETBOX_TOKEN:-0123456789abcdef0123456789abcdef01234567}
-      - SKIP_SUPERUSER=false
+      - SKIP_SUPERUSER=true
     volumes:
       - ./data/netbox/media:/opt/netbox/netbox/media
       - ./data/netbox/reports:/opt/netbox/netbox/reports
