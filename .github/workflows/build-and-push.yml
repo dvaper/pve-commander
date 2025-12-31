@@ -62,8 +62,8 @@ jobs:
 
       - name: Commit and push version update
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          git config user.name "Darth"
+          git config user.email "info@newsxc.net"
           git add frontend/package.json frontend/src/data/changelog.json backend/app/main.py
           if git diff --staged --quiet; then
             echo "No changes to commit"
