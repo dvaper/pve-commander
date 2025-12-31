@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.3 (2025-12-31)
+
+### Bugfixes
+- NetBox erstellt bei Erstinstallation keinen doppelten Admin-User mehr (SKIP_SUPERUSER=true)
+
 ## v1.0.2 (2025-12-31)
 
 ### Bugfixes
