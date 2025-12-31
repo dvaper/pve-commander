@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.0.2 (2025-12-31)
+
+### Bugfixes
+- Service-Status Dialog zeigt jetzt korrekt den Status aller Services (API, NetBox, Proxmox)
+- Inventory View laedt Daten automatisch bei Navigation und Reaktivierung neu
+- VM-Liste laedt Daten automatisch bei Reaktivierung neu
+- NetBox External URL wird im Setup-Wizard automatisch basierend auf Browser-Adresse gesetzt
+- Docker Socket Permissions fuer NetBox User Sync korrigiert
+- SSH Public Key wird automatisch fuer add-ssh-key Playbook injiziert
+- Korrekter Pfad fuer ansible.cfg (/data/config statt /data)
+
+### Verbesserungen
+- NetBox-Benutzerverwaltung in Einstellungen verlinkt (Settings > NetBox > Benutzer verwalten)
+- Ansible-Ausfuehrung optimiert (Pipelining, SSH ControlPersist, Fact Caching)
+
 ## v1.0.1 (2025-12-31)
 
 ### Bugfixes
