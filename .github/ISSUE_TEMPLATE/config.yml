@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Frage stellen / Ask a Question
+    url: https://github.com/dvaper/pve-commander/discussions/new?category=q-a
+    about: Nutze Discussions für Fragen / Use Discussions for questions
+  - name: Sicherheitslücke melden / Report Security Vulnerability
+    url: https://github.com/dvaper/pve-commander/security/advisories/new
+    about: Melde Sicherheitslücken privat / Report security issues privately

@@ -40,7 +40,8 @@ TODO.md
 test-lauf.md
 
 # Security Reports (lokal, nicht committen)
-SECURITY*.md
+# SECURITY.md ist die Community Standards Datei und wird committet
+SECURITY-*.md
 security-audit*.md
 security-report*.md
 security/
