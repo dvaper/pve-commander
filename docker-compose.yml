@@ -31,7 +31,7 @@ services:
     # Docker Socket Zugriff: GID der docker-Gruppe auf dem Host
     # Ermitteln mit: stat -c '%g' /var/run/docker.sock
     group_add:
-      - ${DOCKER_GID:-999}
+      - ${DOCKER_GID:-989}
     depends_on:
       postgres:
         condition: service_healthy
