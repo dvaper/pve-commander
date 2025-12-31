@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     description="Standalone VM-Management fuer Proxmox mit integriertem NetBox, Ansible und Terraform",
-    version="1.0.10",
+    version="1.0.11",
     lifespan=lifespan,
 )
 
@@ -119,7 +119,7 @@ async def root():
     """Health Check"""
     return {
         "app": settings.app_name,
-        "version": "1.0.10",
+        "version": "1.0.11",
         "status": "running",
     }
 

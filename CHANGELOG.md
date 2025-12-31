@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.11 (2025-12-31)
+
+### Bugfixes
+- Backup-Tabelle: Horizontales Scrolling fuer schmale Bildschirme
+- Aktionen-Buttons (Download, Restore, Loeschen) immer sichtbar
+
 ## v1.0.10 (2025-12-31)
 
 ### Bugfixes

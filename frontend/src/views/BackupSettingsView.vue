@@ -329,6 +329,7 @@
               :loading="loadingBackups"
               density="compact"
               :items-per-page="10"
+              class="backup-table"
             >
               <template v-slot:item.created_at="{ item }">
                 <span class="text-no-wrap">{{ formatDate(item.created_at) }}</span>
@@ -533,11 +534,11 @@ const backupOptions = ref({
 const backups = ref([])
 const loadingBackups = ref(false)
 const backupHeaders = [
-  { title: 'Datum', key: 'created_at', width: 160 },
-  { title: 'Groesse', key: 'size_bytes', width: 90 },
+  { title: 'Datum', key: 'created_at', minWidth: '140px' },
+  { title: 'Groesse', key: 'size_bytes', minWidth: '80px' },
   { title: 'Komponenten', key: 'components' },
-  { title: 'Typ', key: 'is_scheduled', width: 60 },
-  { title: 'Aktionen', key: 'actions', width: 150, sortable: false, align: 'end' },
+  { title: 'Typ', key: 'is_scheduled', minWidth: '50px' },
+  { title: 'Aktionen', key: 'actions', minWidth: '130px', sortable: false },
 ]
 
 // Zeitplan
@@ -849,3 +850,12 @@ function formatDate(dateStr) {
   })
 }
 </script>
+
+<style scoped>
+.backup-table {
+  overflow-x: auto;
+}
+.backup-table :deep(table) {
+  min-width: 550px;
+}
+</style>
