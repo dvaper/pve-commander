@@ -1,5 +1,17 @@
 [
   {
+    "version": "v1.0.4",
+    "date": "2025-12-31",
+    "changes": {
+      "Bugfixes": [
+        "NetBox Superuser-Sync wartet auf NetBox-Initialisierung (max 5 Min)"
+      ],
+      "Features": [
+        "NetBox als optionales Docker Compose Profile"
+      ]
+    }
+  },
+  {
     "version": "v1.0.3",
     "date": "2025-12-31",
     "changes": {
