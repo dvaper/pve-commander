@@ -625,6 +625,69 @@ async def test_proxmox_connection(
         )
 
 
+# ==================== Default Storage ====================
+
+class DefaultStorageResponse(BaseModel):
+    """Schema fuer Default Storage Response"""
+    storage: Optional[str] = None
+
+
+class DefaultStorageUpdate(BaseModel):
+    """Schema fuer Default Storage Update"""
+    storage: Optional[str] = None
+
+
+@router.get("/default-storage", response_model=DefaultStorageResponse)
+async def get_default_storage(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Standard Storage-Pool abrufen (public - fuer Frontend).
+
+    Gibt den konfigurierten Standard Storage-Pool zurueck,
+    der bei neuen VMs vorausgewaehlt wird.
+    """
+    settings_service = get_settings_service(db)
+    storage = await settings_service.get_default_storage()
+    return DefaultStorageResponse(storage=storage)
+
+
+@router.put("/default-storage", response_model=DefaultStorageResponse)
+async def set_default_storage(
+    data: DefaultStorageUpdate,
+    request: Request = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_super_admin_user),
+):
+    """
+    Standard Storage-Pool setzen (nur Super-Admin).
+
+    Dieser Storage-Pool wird im VM-Deployment Wizard als
+    Standard vorausgewaehlt.
+    Beispiel: 'local-ssd', 'local-lvm', 'ceph-pool'
+    """
+    settings_service = get_settings_service(db)
+
+    # Alten Wert fuer Audit holen
+    old_storage = await settings_service.get_default_storage()
+
+    await settings_service.set_default_storage(data.storage)
+
+    # Audit: Default Storage geaendert
+    await audit_log(
+        db=db,
+        action_type=ActionType.SETTINGS_CHANGE,
+        resource_type=ResourceType.SETTINGS,
+        user_id=current_user.id,
+        username=current_user.username,
+        resource_name="default_storage",
+        details={"old": old_storage, "new": data.storage},
+        request=request,
+    )
+
+    return DefaultStorageResponse(storage=data.storage)
+
+
 # ==================== NetBox Benutzer ====================
 
 class NetBoxUserResponse(BaseModel):

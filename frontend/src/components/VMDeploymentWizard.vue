@@ -533,6 +533,8 @@ const ipMode = ref('auto')
 const ipamError = ref(false)
 // NetBox URL: wird aus Settings geladen
 const netboxUrl = ref(null)
+// Default Storage: wird aus Settings geladen
+const defaultStorage = ref(null)
 const validation = ref(null)
 const preview = ref(null)
 const loadingTemplates = ref(false)
@@ -646,6 +648,7 @@ async function open() {
     loadTemplates(),
     loadPresets(),  // ruft applyPreset() auf, das loadStoragePools() und loadAvailableIPs() triggert
     loadNetboxUrl(),
+    loadDefaultStorage(),
   ])
 
   // Fallback: IPs laden falls kein Default-Preset existiert
@@ -826,9 +829,14 @@ async function loadStoragePools() {
       ...s,
       label: `${s.id} (${s.type})`,
     }))
-    // Erstes verfuegbares Storage vorauswaehlen
+    // Storage vorauswaehlen: Default Storage oder erstes verfuegbares
     if (storagePools.value.length > 0) {
-      config.value.storage = storagePools.value[0].id
+      // Default Storage verwenden falls vorhanden und verfuegbar
+      if (defaultStorage.value && storagePools.value.some(s => s.id === defaultStorage.value)) {
+        config.value.storage = defaultStorage.value
+      } else {
+        config.value.storage = storagePools.value[0].id
+      }
     }
   } catch (e) {
     console.error('Storage laden fehlgeschlagen:', e)
@@ -866,6 +874,16 @@ async function loadNetboxUrl() {
     netboxUrl.value = response.data.url
   } catch (e) {
     console.error('NetBox URL laden fehlgeschlagen:', e)
+  }
+}
+
+async function loadDefaultStorage() {
+  try {
+    const response = await api.get('/api/settings/default-storage')
+    defaultStorage.value = response.data.storage
+  } catch (e) {
+    console.error('Default Storage laden fehlgeschlagen:', e)
+    defaultStorage.value = null
   }
 }
 

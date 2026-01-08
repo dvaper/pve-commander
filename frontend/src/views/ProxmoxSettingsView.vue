@@ -179,6 +179,65 @@
           </v-card-actions>
         </v-card>
 
+        <!-- Default Storage Karte -->
+        <v-card class="mt-4">
+          <v-card-title class="d-flex align-center">
+            <v-icon start>mdi-database</v-icon>
+            Standard Storage-Pool
+            <v-spacer></v-spacer>
+            <v-chip
+              v-if="storageConfig.default_storage"
+              color="primary"
+              size="small"
+              variant="tonal"
+            >
+              {{ storageConfig.default_storage }}
+            </v-chip>
+          </v-card-title>
+          <v-card-text>
+            <p class="text-body-2 text-grey mb-4">
+              Der hier konfigurierte Storage-Pool wird im VM-Deployment Wizard als Standard vorausgewaehlt.
+            </p>
+
+            <v-select
+              v-model="storageConfig.default_storage"
+              :items="availableStorages"
+              item-title="label"
+              item-value="id"
+              label="Standard Storage-Pool"
+              prepend-inner-icon="mdi-harddisk"
+              hint="Wird bei neuen VMs vorausgewaehlt"
+              persistent-hint
+              variant="outlined"
+              density="compact"
+              clearable
+              :loading="loadingStorages"
+              @update:model-value="markStorageChanged"
+            >
+              <template v-slot:item="{ item, props }">
+                <v-list-item v-bind="props">
+                  <template v-slot:subtitle>
+                    {{ item.raw.type }} - {{ formatBytes(item.raw.available) }} frei
+                  </template>
+                </v-list-item>
+              </template>
+            </v-select>
+          </v-card-text>
+          <v-divider></v-divider>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+              color="primary"
+              :loading="savingStorage"
+              :disabled="!hasStorageChanges"
+              @click="saveStorageConfig"
+            >
+              <v-icon start>mdi-content-save</v-icon>
+              Speichern
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+
         <!-- Hilfe-Karte -->
         <v-card class="mt-4">
           <v-card-title>
@@ -278,6 +337,16 @@ const testing = ref(false)
 const showSecret = ref(false)
 const hasChanges = ref(false)
 const testResult = ref(null)
+
+// Storage State
+const loadingStorages = ref(false)
+const savingStorage = ref(false)
+const hasStorageChanges = ref(false)
+const availableStorages = ref([])
+const storageConfig = ref({
+  default_storage: null
+})
+const originalStorageConfig = ref({})
 
 // Original config (for reset)
 const originalConfig = ref({})
@@ -416,8 +485,72 @@ async function saveConfig() {
   }
 }
 
+// Storage Methods
+function markStorageChanged() {
+  hasStorageChanges.value = true
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+async function loadStorageConfig() {
+  try {
+    const response = await api.get('/api/settings/default-storage')
+    storageConfig.value.default_storage = response.data.storage
+    originalStorageConfig.value = { ...storageConfig.value }
+  } catch (e) {
+    console.error('Default Storage laden fehlgeschlagen:', e)
+  }
+}
+
+async function loadAvailableStorages() {
+  loadingStorages.value = true
+  try {
+    // Storages vom ersten verfuegbaren Node laden
+    const nodesResponse = await api.get('/api/terraform/nodes')
+    if (nodesResponse.data.length > 0) {
+      const firstNode = nodesResponse.data[0].name
+      const storageResponse = await api.get('/api/terraform/storage', {
+        params: { node: firstNode }
+      })
+      availableStorages.value = storageResponse.data.map(s => ({
+        ...s,
+        label: `${s.id} (${s.type})`,
+      }))
+    }
+  } catch (e) {
+    console.error('Storage-Pools laden fehlgeschlagen:', e)
+    availableStorages.value = []
+  } finally {
+    loadingStorages.value = false
+  }
+}
+
+async function saveStorageConfig() {
+  savingStorage.value = true
+  try {
+    await api.put('/api/settings/default-storage', {
+      storage: storageConfig.value.default_storage
+    })
+    originalStorageConfig.value = { ...storageConfig.value }
+    hasStorageChanges.value = false
+    showMessage('Standard Storage-Pool gespeichert')
+  } catch (e) {
+    showMessage(e.response?.data?.detail || 'Speichern fehlgeschlagen', 'error')
+  } finally {
+    savingStorage.value = false
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   loadConfig()
+  loadStorageConfig()
+  loadAvailableStorages()
 })
 </script>

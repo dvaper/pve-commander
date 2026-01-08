@@ -16,6 +16,7 @@ from app.models.app_settings import (
     SETTING_DEFAULT_GROUPS,
     SETTING_DEFAULT_PLAYBOOKS,
     SETTING_NETBOX_EXTERNAL_URL,
+    SETTING_DEFAULT_STORAGE,
 )
 
 
@@ -182,6 +183,40 @@ class SettingsService:
             # URL loeschen wenn None oder leer
             result = await self.db.execute(
                 select(AppSettings).where(AppSettings.key == SETTING_NETBOX_EXTERNAL_URL)
+            )
+            setting = result.scalar_one_or_none()
+            if setting:
+                await self.db.delete(setting)
+                await self.db.commit()
+
+    # ==================== Default Storage ====================
+
+    async def get_default_storage(self) -> Optional[str]:
+        """
+        Holt den Standard Storage-Pool fuer neue VMs.
+
+        Returns:
+            Storage-Pool Name oder None (dann wird der erste verfuegbare verwendet)
+        """
+        return await self.get_setting(SETTING_DEFAULT_STORAGE)
+
+    async def set_default_storage(self, storage: Optional[str]) -> None:
+        """
+        Setzt den Standard Storage-Pool fuer neue VMs.
+
+        Args:
+            storage: Storage-Pool Name (z.B. 'local-ssd', 'local-lvm')
+        """
+        if storage:
+            await self.set_setting(
+                SETTING_DEFAULT_STORAGE,
+                storage,
+                "Standard Storage-Pool fuer neue VMs"
+            )
+        else:
+            # Storage-Setting loeschen wenn None oder leer
+            result = await self.db.execute(
+                select(AppSettings).where(AppSettings.key == SETTING_DEFAULT_STORAGE)
             )
             setting = result.scalar_one_or_none()
             if setting:
