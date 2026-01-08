@@ -647,13 +647,41 @@ async def generate_terraform_tfvars(config: SetupConfig) -> None:
             pass
 
     # Proxmox API URL zusammenbauen
-    host = config.proxmox_host
+    # Der bpg/proxmox Provider erwartet nur die Basis-URL (ohne /api2/json)
+    # Format: https://host:8006
+    host = config.proxmox_host.strip().rstrip("/")
+
+    # Entferne evtl. vorhandenes /api2/json Suffix
+    if host.endswith("/api2/json"):
+        host = host[:-len("/api2/json")]
+
     if not host.startswith("http"):
-        api_url = f"https://{host}:8006/api2/json"
-    elif ":8006" not in host and not host.endswith("/api2/json"):
-        api_url = f"{host.rstrip('/')}/api2/json"
+        # Kein Schema - HTTPS mit Port 8006 hinzufuegen
+        if ":" in host:
+            # Port bereits vorhanden (z.B. 192.168.1.100:8006)
+            api_url = f"https://{host}"
+        else:
+            # Kein Port - Standard Proxmox Port hinzufuegen
+            api_url = f"https://{host}:8006"
     else:
-        api_url = f"{host.rstrip('/')}/api2/json" if not host.endswith("/api2/json") else host
+        # Schema vorhanden - pruefen ob Port noetig
+        from urllib.parse import urlparse
+        parsed = urlparse(host)
+        if not parsed.port and parsed.scheme == "https":
+            # HTTPS ohne Port - bei direktem Proxmox-Zugriff :8006 hinzufuegen
+            # ABER: Wenn User explizit https://hostname angegeben hat, ist es
+            # vermutlich ein Reverse Proxy auf Port 443 - dann keinen Port hinzufuegen
+            # Heuristik: Wenn Hostname eine IP ist, Port 8006 hinzufuegen
+            import re
+            hostname = parsed.netloc
+            is_ip = bool(re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', hostname))
+            if is_ip:
+                api_url = f"{host}:8006"
+            else:
+                # DNS-Name mit https:// ohne Port -> vermutlich Reverse Proxy
+                api_url = host
+        else:
+            api_url = host
 
     # tfvars Inhalt
     tfvars_content = f'''# PVE Commander - Terraform Variablen

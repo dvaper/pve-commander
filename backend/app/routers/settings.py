@@ -466,6 +466,21 @@ async def update_proxmox_config(
     except Exception as e:
         logger.debug(f"Proxmox Service Reload: {e}")
 
+    # Terraform tfvars regenerieren (damit Terraform die neuen Credentials verwendet)
+    try:
+        from app.routers.setup import SetupConfig, generate_terraform_tfvars
+        tfvars_config = SetupConfig(
+            proxmox_host=config.proxmox_host,
+            proxmox_token_id=config.proxmox_token_id,
+            proxmox_token_secret=config.proxmox_token_secret if config.proxmox_token_secret != "********" else app_settings.proxmox_token_secret,
+            proxmox_verify_ssl=config.proxmox_verify_ssl,
+            default_ssh_user=app_settings.default_ssh_user or "ansible",
+        )
+        await generate_terraform_tfvars(tfvars_config)
+        logger.info("Terraform tfvars nach Proxmox-Update regeneriert")
+    except Exception as e:
+        logger.warning(f"Terraform tfvars Regenerierung fehlgeschlagen: {e}")
+
     logger.info(f"Proxmox-Konfiguration aktualisiert: {config.proxmox_host}")
 
     # Audit: Proxmox-Konfiguration geaendert
