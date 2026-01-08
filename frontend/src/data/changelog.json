@@ -1,5 +1,17 @@
 [
   {
+    "version": "v1.2.5",
+    "date": "2026-01-08",
+    "changes": {
+      "Features": [
+        "Add configurable default storage pool"
+      ],
+      "Refactoring": [
+        "SSH-Keys aus separater Config-Datei laden"
+      ]
+    }
+  },
+  {
     "version": "v1.2.4",
     "date": "2026-01-08",
     "changes": {
