@@ -1,0 +1,17 @@
+# SSH-Keys Konfiguration
+# Diese Datei wird vom ssh-keys Playbook geladen.
+#
+# Nach der Installation anpassen:
+#   /opt/pve-commander/data/config/ssh-keys.yml
+#
+# Format:
+#   ssh_keys:
+#     - comment: "beschreibung"
+#       key: "ssh-ed25519 AAAA... user@host"
+---
+ssh_keys:
+  # Beispiel-Keys (ersetze mit deinen eigenen!)
+  - comment: "admin@example.com"
+    key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyReplaceWithYourOwn1 admin@example.com"
+  - comment: "ansible-control@homelab"
+    key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyReplaceWithYourOwn2 ansible-control@homelab"

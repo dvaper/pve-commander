@@ -1,6 +1,10 @@
 # SSH-Keys konsolidieren und aufraeumen
 # ACHTUNG: Dieses Playbook entfernt alle nicht definierten Keys!
 #
+# Konfiguration:
+#   Die SSH-Keys werden aus config/ssh-keys.yml geladen.
+#   Passe diese Datei an deine Umgebung an.
+#
 # Verwendung:
 #   ansible-playbook playbooks/ssh-keys.yml -l <hostname>
 #   ansible-playbook playbooks/ssh-keys.yml -l <hostname> --check  # Trockenlauf
@@ -8,15 +12,16 @@
 - name: SSH-Keys konsolidieren
   hosts: all
   become: false
-  vars:
-    # Standard-Keys fuer alle VMs (Beispiel - ersetze mit deinen eigenen Keys!)
-    ssh_keys:
-      - comment: "admin@example.com"
-        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAEXAMPLEKEYREPLACEWITHYOUROWN admin@example.com"
-      - comment: "ansible-control@homelab"
-        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAEXAMPLEKEYREPLACEWITHYOUROWN2 ansible-control@homelab"
+
+  vars_files:
+    - ../config/ssh-keys.yml
 
   tasks:
+    - name: Pruefe ob SSH-Keys konfiguriert sind
+      ansible.builtin.fail:
+        msg: "Keine SSH-Keys konfiguriert! Bitte config/ssh-keys.yml anpassen."
+      when: ssh_keys is not defined or ssh_keys | length == 0
+
     - name: Stelle sicher dass .ssh Verzeichnis existiert
       ansible.builtin.file:
         path: "~/.ssh"
