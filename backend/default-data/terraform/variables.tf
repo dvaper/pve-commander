@@ -49,9 +49,10 @@ variable "ssh_user" {
   default     = "deploy"
 }
 
-variable "ssh_public_key" {
-  description = "SSH Public Key fuer Cloud-Init"
-  type        = string
+variable "ssh_public_keys" {
+  description = "SSH Public Keys fuer Cloud-Init (aus Cloud-Init Settings)"
+  type        = list(string)
+  default     = []
 }
 
 variable "default_dns" {

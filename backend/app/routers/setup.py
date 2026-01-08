@@ -10,6 +10,7 @@ Security Features (CRIT-01):
 - force-Parameter nur fuer Rekonfiguration (mit Warnung)
 """
 import os
+import json
 import asyncio
 import logging
 from datetime import datetime
@@ -636,13 +637,17 @@ async def generate_terraform_tfvars(config: SetupConfig) -> None:
     terraform_dir = Path(settings.terraform_dir)
     tfvars_path = terraform_dir / "terraform.tfvars"
 
-    # SSH Public Key lesen (falls vorhanden)
-    ssh_public_key = ""
+    # SSH Public Keys lesen (falls vorhanden)
+    # Bei Setup: Key aus Datei als initiale Liste verwenden
+    # Cloud-Init Settings werden spaeter via sync_ssh_keys_to_tfvars() synchronisiert
+    ssh_public_keys = []
     ssh_key_path = Path(settings.ssh_key_path)
     ssh_pub_path = ssh_key_path.with_suffix(".pub")
     if ssh_pub_path.exists():
         try:
-            ssh_public_key = ssh_pub_path.read_text().strip()
+            key = ssh_pub_path.read_text().strip()
+            if key:
+                ssh_public_keys = [key]
         except Exception:
             pass
 
@@ -697,7 +702,7 @@ proxmox_tls_insecure = {str(not config.proxmox_verify_ssl).lower()}
 # VM-Defaults (werden bei VM-Erstellung dynamisch gesetzt)
 # default_template und default_template_node werden aus Proxmox geladen
 ssh_user              = "{config.default_ssh_user}"
-ssh_public_key        = "{ssh_public_key}"
+ssh_public_keys       = {json.dumps(ssh_public_keys)}
 default_dns           = ["1.1.1.1", "8.8.8.8"]
 '''
 

@@ -15,6 +15,7 @@ from app.database import get_db
 from app.models.user import User
 from app.auth.dependencies import get_current_super_admin_user
 from app.services.cloud_init_settings_service import get_cloud_init_settings_service
+from app.services.terraform_service import sync_ssh_keys_to_tfvars
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,12 @@ async def update_cloud_init_settings(
         nas_snippets_ref=update.nas_snippets_ref,
     )
 
+    # Wenn SSH-Keys geaendert wurden, terraform.tfvars synchronisieren
+    if update.ssh_authorized_keys is not None:
+        sync_result = await sync_ssh_keys_to_tfvars(db)
+        if not sync_result["success"]:
+            logger.warning(f"SSH-Key Sync nach tfvars fehlgeschlagen: {sync_result.get('error')}")
+
     settings_dict = await service.get_all_settings_dict()
     logger.info(f"Cloud-Init Settings aktualisiert von {current_user.username}")
     return CloudInitSettingsRead(**settings_dict)
@@ -160,6 +167,12 @@ async def add_ssh_key(
     service = get_cloud_init_settings_service(db)
     keys = await service.add_ssh_key(key)
     logger.info(f"SSH-Key hinzugefuegt von {current_user.username}")
+
+    # terraform.tfvars mit neuen Keys synchronisieren
+    sync_result = await sync_ssh_keys_to_tfvars(db)
+    if not sync_result["success"]:
+        logger.warning(f"SSH-Key Sync nach tfvars fehlgeschlagen: {sync_result.get('error')}")
+
     return keys
 
 
@@ -178,6 +191,12 @@ async def remove_ssh_key(
     service = get_cloud_init_settings_service(db)
     keys = await service.remove_ssh_key(key_data.key)
     logger.info(f"SSH-Key entfernt von {current_user.username}")
+
+    # terraform.tfvars mit neuen Keys synchronisieren
+    sync_result = await sync_ssh_keys_to_tfvars(db)
+    if not sync_result["success"]:
+        logger.warning(f"SSH-Key Sync nach tfvars fehlgeschlagen: {sync_result.get('error')}")
+
     return {"success": True, "remaining_keys": keys}
 
 

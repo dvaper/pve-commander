@@ -27,6 +27,7 @@ from app.routers.rollback import router as rollback_router
 from app.services.inventory_sync_service import get_sync_service
 from app.services.backup_scheduler import start_backup_scheduler, stop_backup_scheduler
 from app.services.terraform_health_service import get_terraform_health_service
+from app.services.terraform_service import migrate_tfvars_ssh_key
 
 
 @asynccontextmanager
@@ -37,6 +38,13 @@ async def lifespan(app: FastAPI):
 
     # Sicherheitswarnungen ausgeben (CRIT-02, CRIT-06)
     log_security_warnings_on_startup()
+
+    # terraform.tfvars Migration: ssh_public_key -> ssh_public_keys
+    migration_result = await migrate_tfvars_ssh_key()
+    if migration_result.get("migrated"):
+        logger.info(f"terraform.tfvars migriert: {migration_result.get('message')}")
+    elif not migration_result.get("success"):
+        logger.warning(f"terraform.tfvars Migration fehlgeschlagen: {migration_result.get('error')}")
 
     # Background Inventory-Sync starten
     sync_service = get_sync_service()
@@ -68,7 +76,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     description="Standalone VM-Management fuer Proxmox mit integriertem NetBox, Ansible und Terraform",
-    version="1.2.6",
+    version="1.2.7",
     lifespan=lifespan,
 )
 

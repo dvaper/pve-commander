@@ -75,7 +75,7 @@ resource "proxmox_virtual_environment_vm" "vm" {
   # QEMU Guest Agent
   agent {
     enabled = true
-    timeout = "2m"
+    timeout = "5m"
   }
 
   # Startup-Optionen

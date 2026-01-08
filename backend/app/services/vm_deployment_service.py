@@ -124,7 +124,7 @@ module "{module_name}" {{
   {template_line}
   template_node = var.default_template_node
   ssh_user      = var.ssh_user
-  ssh_keys      = [var.ssh_public_key]
+  ssh_keys      = var.ssh_public_keys
   dns_servers   = var.default_dns
   {cloud_init_line}
 }}

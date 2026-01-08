@@ -2,12 +2,16 @@
 Terraform Service - Führt Terraform-Operationen aus
 """
 import asyncio
+import json
 import os
+import re
+import logging
 from datetime import datetime
 from typing import List, Optional, Callable
 from pathlib import Path
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session
 from app.models.execution import Execution
@@ -15,6 +19,8 @@ from app.models.execution_log import ExecutionLog
 from app.config import settings
 from app.services.execution_runner import ExecutionRunner
 from app.services.output_streamer import OutputStreamer
+
+logger = logging.getLogger(__name__)
 
 
 class TerraformService:
@@ -453,3 +459,154 @@ class TerraformService:
             return {"success": False, "error": str(e)}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+
+async def sync_ssh_keys_to_tfvars(db: AsyncSession) -> dict:
+    """
+    Synchronisiert SSH-Keys aus Cloud-Init Settings nach terraform.tfvars.
+
+    Liest alle SSH-Keys aus den Cloud-Init Settings (Datenbank) und aktualisiert
+    die terraform.tfvars Datei mit diesen Keys.
+
+    Args:
+        db: Async Database Session
+
+    Returns:
+        dict mit success, message und key_count
+    """
+    from app.services.cloud_init_settings_service import CloudInitSettingsService
+
+    try:
+        # SSH-Keys aus Cloud-Init Settings laden
+        settings_service = CloudInitSettingsService(db)
+        ssh_keys = await settings_service.get_ssh_keys()
+
+        # tfvars Pfad
+        terraform_dir = Path(settings.terraform_dir)
+        tfvars_path = terraform_dir / "terraform.tfvars"
+
+        if not tfvars_path.exists():
+            return {
+                "success": False,
+                "error": "terraform.tfvars existiert nicht. Bitte Setup-Wizard ausfuehren.",
+            }
+
+        # tfvars lesen
+        content = tfvars_path.read_text()
+
+        # ssh_public_keys ersetzen (neues Format: Liste)
+        # Pattern: ssh_public_keys = [...] (kann mehrzeilig sein)
+        new_keys_line = f"ssh_public_keys       = {json.dumps(ssh_keys)}"
+
+        if "ssh_public_keys" in content:
+            # Bestehendes ssh_public_keys ersetzen
+            content = re.sub(
+                r'ssh_public_keys\s*=\s*\[.*?\]',
+                new_keys_line,
+                content,
+                flags=re.DOTALL
+            )
+        elif "ssh_public_key" in content:
+            # Altes Format (ssh_public_key = "...") zu neuem Format migrieren
+            content = re.sub(
+                r'ssh_public_key\s*=\s*"[^"]*"',
+                new_keys_line,
+                content
+            )
+        else:
+            # Weder alt noch neu vorhanden - vor default_dns einfuegen
+            if "default_dns" in content:
+                content = content.replace(
+                    "default_dns",
+                    f"{new_keys_line}\ndefault_dns"
+                )
+            else:
+                # Am Ende anfuegen
+                content += f"\n{new_keys_line}\n"
+
+        # Zurueckschreiben
+        tfvars_path.write_text(content)
+
+        logger.info(f"SSH-Keys in tfvars synchronisiert: {len(ssh_keys)} Keys")
+        return {
+            "success": True,
+            "message": f"{len(ssh_keys)} SSH-Keys synchronisiert",
+            "key_count": len(ssh_keys),
+        }
+
+    except Exception as e:
+        logger.error(f"Fehler bei SSH-Key Sync: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+        }
+
+
+async def migrate_tfvars_ssh_key() -> dict:
+    """
+    Migriert terraform.tfvars von ssh_public_key (String) zu ssh_public_keys (Liste).
+
+    Wird beim Backend-Start aufgerufen, um bestehende Installationen zu migrieren.
+
+    Returns:
+        dict mit success, message und migrated (bool)
+    """
+    try:
+        terraform_dir = Path(settings.terraform_dir)
+        tfvars_path = terraform_dir / "terraform.tfvars"
+
+        if not tfvars_path.exists():
+            return {
+                "success": True,
+                "message": "terraform.tfvars existiert nicht, keine Migration noetig",
+                "migrated": False,
+            }
+
+        content = tfvars_path.read_text()
+
+        # Pruefen ob bereits neues Format
+        if "ssh_public_keys" in content:
+            return {
+                "success": True,
+                "message": "Bereits migriert (ssh_public_keys vorhanden)",
+                "migrated": False,
+            }
+
+        # Pruefen ob altes Format vorhanden
+        old_key_match = re.search(r'ssh_public_key\s*=\s*"([^"]*)"', content)
+        if not old_key_match:
+            return {
+                "success": True,
+                "message": "Kein ssh_public_key gefunden, keine Migration noetig",
+                "migrated": False,
+            }
+
+        # Alten Key extrahieren
+        old_key = old_key_match.group(1)
+        ssh_keys = [old_key] if old_key else []
+
+        # Migrieren: Altes Format durch neues ersetzen
+        new_keys_line = f"ssh_public_keys       = {json.dumps(ssh_keys)}"
+        content = re.sub(
+            r'ssh_public_key\s*=\s*"[^"]*"',
+            new_keys_line,
+            content
+        )
+
+        # Zurueckschreiben
+        tfvars_path.write_text(content)
+
+        logger.info(f"terraform.tfvars migriert: ssh_public_key -> ssh_public_keys ({len(ssh_keys)} Keys)")
+        return {
+            "success": True,
+            "message": f"Migration erfolgreich: {len(ssh_keys)} Key(s) migriert",
+            "migrated": True,
+        }
+
+    except Exception as e:
+        logger.error(f"Fehler bei tfvars Migration: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "migrated": False,
+        }
