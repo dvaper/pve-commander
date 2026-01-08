@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.2.7",
+    "date": "2026-01-08",
+    "changes": {
+      "Features": [
+        "Use Cloud-Init Settings SSH keys for VM deployment",
+        "Add default storage pool configuration in Proxmox tab"
+      ]
+    }
+  },
+  {
     "version": "v1.2.6",
     "date": "2026-01-08",
     "changes": {
