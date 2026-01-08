@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.2.6",
+    "date": "2026-01-08",
+    "changes": {
+      "Bugfixes": [
+        "Checkout main branch in build jobs"
+      ]
+    }
+  },
+  {
     "version": "v1.2.5",
     "date": "2026-01-08",
     "changes": {
