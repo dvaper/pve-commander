@@ -215,6 +215,51 @@
                 </v-btn>
               </v-card-actions>
             </v-card>
+
+            <!-- Default Storage -->
+            <v-card class="mt-4">
+              <v-card-title class="d-flex align-center">
+                <v-icon start>mdi-harddisk</v-icon>
+                Standard Storage-Pool
+                <v-spacer />
+                <v-chip v-if="defaultStorage" color="primary" size="small" variant="tonal">
+                  {{ defaultStorage }}
+                </v-chip>
+              </v-card-title>
+              <v-card-text>
+                <p class="text-body-2 text-grey mb-4">
+                  Der hier konfigurierte Storage-Pool wird im VM-Deployment Wizard als Standard vorausgewaehlt.
+                </p>
+                <v-select
+                  v-model="defaultStorage"
+                  :items="availableStorages"
+                  item-title="label"
+                  item-value="id"
+                  label="Standard Storage-Pool"
+                  prepend-inner-icon="mdi-harddisk"
+                  hint="Wird bei neuen VMs vorausgewaehlt"
+                  persistent-hint
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  :loading="loadingStorages"
+                >
+                  <template v-slot:item="{ item, props }">
+                    <v-list-item v-bind="props">
+                      <template v-slot:subtitle>
+                        {{ item.raw.type }} - {{ formatBytes(item.raw.available) }} frei
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer />
+                <v-btn color="primary" :loading="savingStorage" @click="saveDefaultStorage">
+                  Speichern
+                </v-btn>
+              </v-card-actions>
+            </v-card>
           </v-tabs-window-item>
 
           <!-- NetBox -->
@@ -974,6 +1019,12 @@ const proxmox = ref({
   proxmox_verify_ssl: false,
 })
 
+// Default Storage
+const defaultStorage = ref(null)
+const availableStorages = ref([])
+const loadingStorages = ref(false)
+const savingStorage = ref(false)
+
 // NetBox URL
 const netboxUrl = ref('')
 
@@ -1182,6 +1233,58 @@ async function testProxmox() {
     showSnackbar?.('Verbindung fehlgeschlagen: ' + (e.response?.data?.detail || e.message), 'error')
   } finally {
     testing.value = false
+  }
+}
+
+// Storage Funktionen
+function formatBytes(bytes) {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+async function loadDefaultStorage() {
+  try {
+    const response = await api.get('/api/settings/default-storage')
+    defaultStorage.value = response.data.storage
+  } catch (e) {
+    console.error('Default Storage laden fehlgeschlagen:', e)
+  }
+}
+
+async function loadAvailableStorages() {
+  loadingStorages.value = true
+  try {
+    const nodesResponse = await api.get('/api/terraform/nodes')
+    if (nodesResponse.data.length > 0) {
+      const firstNode = nodesResponse.data[0].name
+      const storageResponse = await api.get('/api/terraform/storage', {
+        params: { node: firstNode }
+      })
+      availableStorages.value = storageResponse.data.map(s => ({
+        ...s,
+        label: `${s.id} (${s.type})`,
+      }))
+    }
+  } catch (e) {
+    console.error('Storage-Pools laden fehlgeschlagen:', e)
+    availableStorages.value = []
+  } finally {
+    loadingStorages.value = false
+  }
+}
+
+async function saveDefaultStorage() {
+  savingStorage.value = true
+  try {
+    await api.put('/api/settings/default-storage', { storage: defaultStorage.value })
+    showSnackbar?.('Standard Storage-Pool gespeichert', 'success')
+  } catch (e) {
+    showSnackbar?.('Speichern fehlgeschlagen: ' + (e.response?.data?.detail || e.message), 'error')
+  } finally {
+    savingStorage.value = false
   }
 }
 
@@ -1460,6 +1563,8 @@ onMounted(async () => {
   await loadSettings()
   await loadSshKeys()
   await loadSecurityStatus()
+  await loadDefaultStorage()
+  await loadAvailableStorages()
   if (route.query.tab) {
     tab.value = route.query.tab
   }
