@@ -639,7 +639,12 @@ async function open() {
   preview.value = null
   selectedPreset.value = null
 
-  // Daten parallel laden fuer schnelleren Dialog-Aufbau
+  // WICHTIG: Default-Storage ZUERST laden, bevor loadNodes() aufgerufen wird
+  // loadNodes() triggert loadStoragePools(), das defaultStorage.value prüft
+  // Race Condition: Ohne await hier könnte defaultStorage noch null sein
+  await loadDefaultStorage()
+
+  // Restliche Daten parallel laden fuer schnelleren Dialog-Aufbau
   await Promise.all([
     loadNodes(),
     loadVLANs(),
@@ -648,7 +653,6 @@ async function open() {
     loadTemplates(),
     loadPresets(),  // ruft applyPreset() auf, das loadStoragePools() und loadAvailableIPs() triggert
     loadNetboxUrl(),
-    loadDefaultStorage(),
   ])
 
   // Fallback: IPs laden falls kein Default-Preset existiert

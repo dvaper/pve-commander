@@ -248,6 +248,16 @@ module "{module_name}" {{
         if not validation.valid:
             raise ValueError(f"Validierung fehlgeschlagen: {', '.join(validation.errors)}")
 
+        # Prüfen ob bereits ein Modul mit diesem Namen im Terraform State existiert
+        # Dies verhindert "disk update fails" Fehler durch veraltete State-Einträge
+        module_name = self._sanitize_module_name(config.name)
+        deployed_modules = await self.terraform_service.get_deployed_modules()
+        if module_name in deployed_modules:
+            raise ValueError(
+                f"VM '{config.name}' existiert bereits im Terraform State. "
+                f"Bitte zuerst mit 'Delete VM Complete' bereinigen oder einen anderen Namen wählen."
+            )
+
         # IP-Adresse bestimmen
         if config.ip_address:
             ip_address = config.ip_address
@@ -292,6 +302,16 @@ module "{module_name}" {{
             except Exception as e:
                 print(f"Fehler bei Cloud-Init Generierung: {e}")
 
+        # Storage bestimmen: Fallback auf Default-Storage wenn nicht gesetzt
+        # (Sicherheitsnetz falls Frontend Race Condition auftritt)
+        storage = config.storage
+        if not storage:
+            from app.services.settings_service import SettingsService
+            async with async_session() as db:
+                settings_svc = SettingsService(db)
+                storage = await settings_svc.get_default_storage() or "local-lvm"
+                print(f"Storage-Fallback: Frontend hat keinen Storage gesetzt, verwende '{storage}'")
+
         # Terraform-Datei generieren
         ansible_group = config.ansible_group or ""
         content = self.generate_tf_content(
@@ -304,7 +324,7 @@ module "{module_name}" {{
             memory_gb=config.memory_gb,
             disk_size_gb=config.disk_size_gb,
             vlan=config.vlan,
-            storage=config.storage,
+            storage=storage,
             ansible_group=ansible_group,
             template_id=config.template_id,
             cloud_init_user_data=cloud_init_ref,
