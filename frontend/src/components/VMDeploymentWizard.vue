@@ -246,6 +246,7 @@
                 :loading="loadingStorage"
                 hint="Speicherort für die VM-Disk"
                 persistent-hint
+                @update:model-value="onStorageChange"
               >
                 <template v-slot:item="{ item, props }">
                   <v-list-item v-bind="props">
@@ -541,8 +542,9 @@ const availableIPs = ref([])
 const selectedIP = ref(null)
 const ipMode = ref('auto')
 const ipamError = ref(false)
-// Flag: User hat VLAN manuell geändert (verhindert Preset-Override)
+// Flags: User hat Felder manuell geändert (verhindert automatisches Überschreiben)
 const userModifiedVlan = ref(false)
+const userModifiedStorage = ref(false)
 // NetBox URL: wird aus Settings geladen
 const netboxUrl = ref(null)
 // Default Storage: wird aus Settings geladen
@@ -655,6 +657,7 @@ async function open() {
   ipMode.value = 'auto'
   ipamError.value = false
   userModifiedVlan.value = false  // Reset: User hat noch nichts manuell geändert
+  userModifiedStorage.value = false
   validation.value = null
   preview.value = null
   selectedPreset.value = null
@@ -856,8 +859,8 @@ async function loadStoragePools() {
       ...s,
       label: `${s.id} (${s.type})`,
     }))
-    // Storage vorauswaehlen: Default Storage oder erstes verfuegbares
-    if (storagePools.value.length > 0) {
+    // Storage vorauswaehlen: Nur wenn User nicht manuell geändert hat
+    if (storagePools.value.length > 0 && !userModifiedStorage.value) {
       // Default Storage verwenden falls vorhanden und verfuegbar
       if (defaultStorage.value && storagePools.value.some(s => s.id === defaultStorage.value)) {
         config.value.storage = defaultStorage.value
@@ -877,6 +880,11 @@ function onVlanChange() {
   // Flag setzen: User hat VLAN manuell geändert
   userModifiedVlan.value = true
   loadAvailableIPs()
+}
+
+function onStorageChange() {
+  // Flag setzen: User hat Storage manuell geändert
+  userModifiedStorage.value = true
 }
 
 async function loadAvailableIPs() {
