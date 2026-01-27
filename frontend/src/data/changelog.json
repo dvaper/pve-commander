@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.2.8",
+    "date": "2026-01-27",
+    "changes": {
+      "Bugfixes": [
+        "Storage Race Condition behoben"
+      ]
+    }
+  },
+  {
     "version": "v1.2.7",
     "date": "2026-01-08",
     "changes": {
