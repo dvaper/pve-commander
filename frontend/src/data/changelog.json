@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.2.9",
+    "date": "2026-01-27",
+    "changes": {
+      "Bugfixes": [
+        "VLAN-Auswahl wird nicht mehr durch Preset überschrieben"
+      ]
+    }
+  },
+  {
     "version": "v1.2.8",
     "date": "2026-01-27",
     "changes": {
