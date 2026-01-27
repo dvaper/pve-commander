@@ -280,7 +280,7 @@
                 prepend-inner-icon="mdi-lan"
                 variant="outlined"
                 density="compact"
-                @update:model-value="loadAvailableIPs"
+                @update:model-value="onVlanChange"
               ></v-select>
 
               <v-radio-group v-model="ipMode" class="mt-4">
@@ -378,6 +378,16 @@
                   <tr>
                     <td class="text-grey">VMID</td>
                     <td>{{ calculatedVMID }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-grey">VLAN</td>
+                    <td>
+                      <v-chip v-if="config.vlan" size="small" color="secondary" variant="outlined">
+                        <v-icon start size="x-small">mdi-lan</v-icon>
+                        {{ selectedVlanName }}
+                      </v-chip>
+                      <span v-else class="text-red">Nicht ausgewählt!</span>
+                    </td>
                   </tr>
                   <tr>
                     <td class="text-grey">Template</td>
@@ -531,6 +541,8 @@ const availableIPs = ref([])
 const selectedIP = ref(null)
 const ipMode = ref('auto')
 const ipamError = ref(false)
+// Flag: User hat VLAN manuell geändert (verhindert Preset-Override)
+const userModifiedVlan = ref(false)
 // NetBox URL: wird aus Settings geladen
 const netboxUrl = ref(null)
 // Default Storage: wird aus Settings geladen
@@ -582,7 +594,8 @@ const canProceed = computed(() => {
     case 2:
       return config.value.cores > 0 && config.value.memory_gb > 0 && config.value.disk_size_gb >= 10
     case 3:
-      return ipMode.value === 'auto' ? !!selectedIP.value : !!config.value.ip_address
+      // VLAN muss ausgewählt sein UND IP-Adresse
+      return config.value.vlan && (ipMode.value === 'auto' ? !!selectedIP.value : !!config.value.ip_address)
     default:
       return true
   }
@@ -602,6 +615,12 @@ const selectedCloudInitName = computed(() => {
   if (!config.value.cloud_init_profile) return 'Keine'
   const profile = cloudInitProfiles.value.find(p => p.value === config.value.cloud_init_profile)
   return profile ? profile.name : config.value.cloud_init_profile
+})
+
+const selectedVlanName = computed(() => {
+  if (!config.value.vlan) return 'Nicht ausgewählt'
+  const vlan = vlans.value.find(v => v.id === config.value.vlan)
+  return vlan ? `VLAN ${vlan.id} - ${vlan.name}` : `VLAN ${config.value.vlan}`
 })
 
 // Hilfsfunktion für Bytes-Formatierung
@@ -635,6 +654,7 @@ async function open() {
   selectedIP.value = null
   ipMode.value = 'auto'
   ipamError.value = false
+  userModifiedVlan.value = false  // Reset: User hat noch nichts manuell geändert
   validation.value = null
   preview.value = null
   selectedPreset.value = null
@@ -784,7 +804,10 @@ function applyPreset(presetId) {
   config.value.cores = preset.cores
   config.value.memory_gb = preset.memory_gb
   config.value.disk_size_gb = preset.disk_size_gb
-  config.value.vlan = preset.vlan
+  // VLAN nur übernehmen, wenn User nicht manuell geändert hat
+  if (!userModifiedVlan.value) {
+    config.value.vlan = preset.vlan
+  }
 
   if (preset.target_node) {
     config.value.target_node = preset.target_node
@@ -848,6 +871,12 @@ async function loadStoragePools() {
   } finally {
     loadingStorage.value = false
   }
+}
+
+function onVlanChange() {
+  // Flag setzen: User hat VLAN manuell geändert
+  userModifiedVlan.value = true
+  loadAvailableIPs()
 }
 
 async function loadAvailableIPs() {
