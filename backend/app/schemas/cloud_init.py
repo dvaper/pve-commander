@@ -66,6 +66,12 @@ CLOUD_INIT_PROFILES = {
             "net.bridge.bridge-nf-call-ip6tables": 1,
             "net.ipv4.ip_forward": 1,
         },
+        "runcmd_extra": [
+            "modprobe ip_tables",
+            "modprobe ip6_tables",
+            'echo "ip_tables" >> /etc/modules-load.d/docker.conf',
+            'echo "ip6_tables" >> /etc/modules-load.d/docker.conf',
+        ],
     },
     "docker-compose": {
         "name": "Docker + Compose Standalone",
