@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.2.12",
+    "date": "2026-02-22",
+    "changes": {
+      "Bugfixes": [
+        "VLAN 2 (Default/LAN) nutzt vmbr0 statt vmbr2",
+        "Load ip_tables/ip6_tables kernel modules in docker-host profile"
+      ]
+    }
+  },
+  {
     "version": "v1.2.11",
     "date": "2026-02-03",
     "changes": {
