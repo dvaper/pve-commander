@@ -41,8 +41,10 @@ class VMDeploymentService:
         """
         Gibt die Bridge für ein VLAN zurück.
 
-        Konvention: vmbr{vlan_id}
+        Konvention: vmbr{vlan_id}, Ausnahme: VLAN 2 (Default/LAN) nutzt vmbr0.
         """
+        if vlan == 2:
+            return "vmbr0"
         return f"vmbr{vlan}"
 
     def get_gateway_for_vlan(self, vlan: int) -> str:
