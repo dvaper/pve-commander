@@ -629,10 +629,11 @@ EOF
                 temp_path = f.name
 
             # Kopiere via SCP zum Proxmox-Node
+            from app.config import settings
             node_ip = self._get_node_ip(proxmox_node)
             scp_cmd = [
                 "scp",
-                "-i", "/root/.ssh/ansible_id",
+                "-i", settings.ssh_key_path,
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "BatchMode=yes",
                 temp_path,
@@ -688,10 +689,11 @@ EOF
         remote_path = f"{nas_path}/{filename}"
 
         try:
+            from app.config import settings
             node_ip = self._get_node_ip(proxmox_node)
             ssh_cmd = [
                 "ssh",
-                "-i", "/root/.ssh/ansible_id",
+                "-i", settings.ssh_key_path,
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "BatchMode=yes",
                 f"root@{node_ip}",
