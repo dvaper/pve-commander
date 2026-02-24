@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.2.14",
+    "date": "2026-02-24",
+    "changes": {
+      "Bugfixes": [
+        "SCP/SSH nutzt settings.ssh_key_path statt hardcoded /root/.ssh/ansible_id"
+      ]
+    }
+  },
+  {
     "version": "v1.2.13",
     "date": "2026-02-24",
     "changes": {
