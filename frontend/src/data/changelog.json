@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.2.15",
+    "date": "2026-05-01",
+    "changes": {
+      "Bugfixes": [
+        "Skip orphan-check bei unreachable Proxmox API"
+      ]
+    }
+  },
+  {
     "version": "v1.2.14",
     "date": "2026-02-24",
     "changes": {
