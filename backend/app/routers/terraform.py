@@ -1507,6 +1507,7 @@ class StateHealthCheck(BaseModel):
     total_vms: int
     orphaned_count: int
     orphaned_vms: list[OrphanedVM]
+    skipped: bool = False
 
 
 class StateHealthStatus(BaseModel):
@@ -1517,6 +1518,7 @@ class StateHealthStatus(BaseModel):
     orphaned_vms: list[OrphanedVM]
     last_check: Optional[str] = None
     next_check: Optional[str] = None
+    skipped: bool = False
 
 
 @router.get("/state/health/status", response_model=StateHealthStatus)

@@ -68,7 +68,9 @@ class TerraformHealthService:
                     try:
                         result = await self.check_health()
 
-                        if result.get("healthy"):
+                        if result.get("skipped"):
+                            logger.info("Health-Check uebersprungen (API nicht erreichbar) - keine Notification")
+                        elif result.get("healthy"):
                             logger.debug(f"Health-Check OK: {result.get('total_vms', 0)} VMs")
                         else:
                             logger.warning(
@@ -106,6 +108,24 @@ class TerraformHealthService:
             # Alle VMs aus Proxmox holen
             proxmox_vms = await proxmox_service.get_all_vms()
             proxmox_vmids = {vm.get("vmid") for vm in proxmox_vms}
+
+            # Sanity-Guard: Leeres Proxmox-Resultat = API unerreichbar, nicht Empty-Cluster.
+            # Ohne diesen Check wuerden alle State-VMs faelschlich als verwaist markiert,
+            # sobald der Proxmox-Cluster waehrend eines Health-Check-Laufs nicht antwortet
+            # (z.B. waehrend eines Cluster-weiten Reboots).
+            if not proxmox_vmids:
+                logger.warning(
+                    "Proxmox-API lieferte 0 VMs zurueck - Health-Check uebersprungen "
+                    "(API vermutlich nicht erreichbar). Persistierter Status bleibt unveraendert."
+                )
+                last = await self.get_last_status()
+                return {
+                    "healthy": last.get("healthy", True),
+                    "total_vms": last.get("total_vms", 0),
+                    "orphaned_count": last.get("orphaned_count", 0),
+                    "orphaned_vms": last.get("orphaned_vms", []),
+                    "skipped": True,
+                }
 
             orphaned_vms = []
             total_vms = 0
